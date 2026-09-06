@@ -33,7 +33,8 @@
       "B": 65,
       "C": 50,
       "S": 35
-    }
+    },
+    "logoImage": "assets/images/logo.png"
   },
   "whatsapp": {
     "isLive": true,
@@ -55,43 +56,7 @@
     "startTime": "Saturday 8:00 AM - 10:30 AM",
     "statusText": "LIVE ON ZOOM"
   },
-  "weeklyColumns": [
-    {
-      "id": "col_mg1",
-      "key": "master_guide_1",
-      "label": "Guidebook 1",
-      "type": "dropdown",
-      "removable": false
-    },
-    {
-      "id": "col_mg2",
-      "key": "master_guide_2",
-      "label": "Guidebook 2",
-      "type": "dropdown",
-      "removable": false
-    },
-    {
-      "id": "col_pp",
-      "key": "past_paper",
-      "label": "Past Paper",
-      "type": "dropdown",
-      "removable": false
-    },
-    {
-      "id": "col_pr",
-      "key": "practical",
-      "label": "Practical Rating",
-      "type": "dropdown",
-      "removable": false
-    },
-    {
-      "id": "col_ut",
-      "key": "unit_test",
-      "label": "Unit Test Score",
-      "type": "number",
-      "removable": false
-    }
-  ],
+  "weeklyColumns": [],
   "userRoles": [
     {
       "key": "super_admin",

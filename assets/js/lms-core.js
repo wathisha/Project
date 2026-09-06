@@ -19,6 +19,7 @@
         teacherTitle: "Head Science Specialist & IT Systems Lead",
         hotlines: "071 781 2092 | 077 161 4260",
         teacherPhoto: "assets/images/teacher_banner.png",
+        logoImage: "assets/images/logo.png",
         bgImage: "assets/images/lms_background.png",
         theme: "light",
         subjectList: ["06 - Science", "07 - Science", "08 - Science", "09 - Science", "10 - Science", "11 - Science"],
@@ -171,13 +172,8 @@
         lastSynced: ""
     };
 
-    const DEFAULT_WEEKLY_COLUMNS = [
-        { id: "col_mg1", key: "master_guide_1", label: "Guidebook 1", type: "dropdown", removable: false },
-        { id: "col_mg2", key: "master_guide_2", label: "Guidebook 2", type: "dropdown", removable: false },
-        { id: "col_pp", key: "past_paper", label: "Past Paper", type: "dropdown", removable: false },
-        { id: "col_pr", key: "practical", label: "Practical Rating", type: "dropdown", removable: false },
-        { id: "col_ut", key: "unit_test", label: "Unit Test Score", type: "number", removable: false }
-    ];
+    // Fully customizable weekly columns - default legacy columns removed per user requirement
+    const DEFAULT_WEEKLY_COLUMNS = [];
 
     const DEFAULT_WHATSAPP = {
         isLive: true,
@@ -966,13 +962,35 @@
         },
 
         // =========================================================================
-        // 9. DYNAMIC WEEKLY TABLE COLUMNS
+        // 9. FULLY CUSTOMIZABLE DYNAMIC WEEKLY TABLE COLUMNS
         // =========================================================================
         getWeeklyColumns() {
             const stored = localStorage.getItem('lms_weekly_columns');
-            return stored ? JSON.parse(stored) : DEFAULT_WEEKLY_COLUMNS;
+            if (stored) {
+                try {
+                    let cols = JSON.parse(stored);
+                    if (Array.isArray(cols)) {
+                        // Ensure legacy default columns (col_mg1, etc.) are purged
+                        const legacyIds = ['col_mg1', 'col_mg2', 'col_pp', 'col_pr', 'col_ut'];
+                        const hasOnlyLegacy = cols.length === 5 && cols.every(c => legacyIds.includes(c.id));
+                        if (hasOnlyLegacy) {
+                            cols = [];
+                            localStorage.setItem('lms_weekly_columns', JSON.stringify([]));
+                        } else {
+                            cols = cols.filter(c => !legacyIds.includes(c.id));
+                        }
+                        // Ensure all columns are removable and fully customized
+                        cols.forEach(c => { c.removable = true; });
+                        return cols;
+                    }
+                } catch (e) {
+                    return [];
+                }
+            }
+            return DEFAULT_WEEKLY_COLUMNS;
         },
         async saveWeeklyColumns(columnsArray) {
+            columnsArray.forEach(c => { c.removable = true; });
             localStorage.setItem('lms_weekly_columns', JSON.stringify(columnsArray));
             await this.pushToCloud('config', this.getGlobalConfigObject());
             return columnsArray;
@@ -992,13 +1010,18 @@
             return { cols, newCol };
         },
         async removeWeeklyColumn(columnKey) {
-            let cols = this.getWeeklyColumns().filter(c => c.key !== columnKey || c.removable === false);
+            let cols = this.getWeeklyColumns().filter(c => c.key !== columnKey);
             await this.saveWeeklyColumns(cols);
             return cols;
         },
+        async clearAllWeeklyColumns() {
+            localStorage.setItem('lms_weekly_columns', JSON.stringify([]));
+            await this.pushToCloud('config', this.getGlobalConfigObject());
+            return [];
+        },
         resetWeeklyColumns() {
-            localStorage.removeItem('lms_weekly_columns');
-            return DEFAULT_WEEKLY_COLUMNS;
+            localStorage.setItem('lms_weekly_columns', JSON.stringify([]));
+            return [];
         },
 
         // =========================================================================
@@ -1458,26 +1481,174 @@
             return students;
         },
 
-        getPracticalPieData(student) {
-            const counts = { "Completed": 0, "0.5 Done": 0, "Pending": 0, "Incomplete": 0, "Still not attended": 0 };
+        // =========================================================================
+        // 13. DYNAMIC PIE CHART ANALYTICS FOR ALL MANUALLY ADDED COLUMNS
+        // =========================================================================
+        getColumnPieData(student, columnKey, monthName = null) {
+            const cols = this.getWeeklyColumns();
+            const col = cols.find(c => c.key === columnKey) || { key: columnKey, label: columnKey, type: 'dropdown' };
+            const isNumeric = col.type === 'number';
+
+            const rawValues = [];
             if (student && student.monthly_progress) {
-                Object.values(student.monthly_progress).forEach(mWeeks => {
+                if (monthName && monthName !== 'all') {
+                    const mWeeks = student.monthly_progress[monthName];
                     if (Array.isArray(mWeeks)) {
                         mWeeks.forEach(w => {
-                            if (!w || String(w.week).toLowerCase() === 'weeks') return;
-                            const pr = (w.practical || "Still not attended").trim().toLowerCase();
-                            if (pr === "completed" || pr === "good" || pr === "excellent") counts["Completed"]++;
-                            else if (pr === "0.5 done" || pr === "average" || pr === "0.5") counts["0.5 Done"]++;
-                            else if (pr === "pending") counts["Pending"]++;
-                            else if (pr === "incomplete" || pr === "bad" || pr === "needs improvement") counts["Incomplete"]++;
-                            else counts["Still not attended"]++;
+                            if (w && String(w.week).toLowerCase() !== 'weeks') {
+                                rawValues.push(w[columnKey]);
+                            }
                         });
                     }
-                });
-            } else {
-                counts["Completed"] = 15; counts["0.5 Done"] = 8; counts["Pending"] = 6; counts["Incomplete"] = 3; counts["Still not attended"] = 4;
+                } else {
+                    Object.values(student.monthly_progress).forEach(mWeeks => {
+                        if (Array.isArray(mWeeks)) {
+                            mWeeks.forEach(w => {
+                                if (w && String(w.week).toLowerCase() !== 'weeks') {
+                                    rawValues.push(w[columnKey]);
+                                }
+                            });
+                        }
+                    });
+                }
             }
-            return counts;
+
+            const distribution = {};
+            let totalEvaluated = 0;
+            const totalEntries = rawValues.length;
+
+            if (isNumeric) {
+                const bands = {
+                    'A: 75 - 100%': 0,
+                    'B: 65 - 74%': 0,
+                    'C: 50 - 64%': 0,
+                    'S: 35 - 49%': 0,
+                    'F: < 35%': 0,
+                    'Unattempted / Blank': 0
+                };
+                rawValues.forEach(val => {
+                    if (val === null || val === undefined || val === '' || isNaN(val)) {
+                        bands['Unattempted / Blank']++;
+                    } else {
+                        const num = parseFloat(val);
+                        totalEvaluated++;
+                        if (num >= 75) bands['A: 75 - 100%']++;
+                        else if (num >= 65) bands['B: 65 - 74%']++;
+                        else if (num >= 50) bands['C: 50 - 64%']++;
+                        else if (num >= 35) bands['S: 35 - 49%']++;
+                        else bands['F: < 35%']++;
+                    }
+                });
+
+                Object.keys(bands).forEach(k => {
+                    if (bands[k] > 0 || k === 'Unattempted / Blank') {
+                        distribution[k] = bands[k];
+                    }
+                });
+
+                const colorMap = {
+                    'A: 75 - 100%': '#10b981',
+                    'B: 65 - 74%': '#6366f1',
+                    'C: 50 - 64%': '#f59e0b',
+                    'S: 35 - 49%': '#06b6d4',
+                    'F: < 35%': '#ef4444',
+                    'Unattempted / Blank': '#64748b'
+                };
+
+                const labels = Object.keys(distribution);
+                const data = Object.values(distribution);
+                const colors = labels.map(l => colorMap[l] || '#8b5cf6');
+
+                return {
+                    columnKey: col.key,
+                    columnLabel: col.label,
+                    columnType: col.type,
+                    labels,
+                    data,
+                    colors,
+                    totalEvaluated,
+                    totalEntries
+                };
+            } else {
+                const counts = {
+                    'Completed': 0,
+                    '0.5 Done': 0,
+                    'Pending': 0,
+                    'Incomplete': 0,
+                    'Still not attended': 0
+                };
+
+                rawValues.forEach(val => {
+                    const str = String(val || '').trim();
+                    if (!str || str.toLowerCase().includes('not attended') || str.toUpperCase() === 'NULL') {
+                        counts['Still not attended']++;
+                    } else {
+                        const lower = str.toLowerCase();
+                        if (lower === 'completed' || lower === 'good' || lower === 'excellent') {
+                            counts['Completed']++;
+                        } else if (lower === '0.5 done' || lower === 'average' || lower === '0.5') {
+                            counts['0.5 Done']++;
+                        } else if (lower === 'pending') {
+                            counts['Pending']++;
+                        } else if (lower === 'incomplete' || lower === 'bad' || lower === 'needs improvement') {
+                            counts['Incomplete']++;
+                        } else {
+                            counts[str] = (counts[str] || 0) + 1;
+                        }
+                        totalEvaluated++;
+                    }
+                });
+
+                const standardColorMap = {
+                    'Completed': '#10b981',
+                    '0.5 Done': '#06b6d4',
+                    'Pending': '#f59e0b',
+                    'Incomplete': '#ef4444',
+                    'Still not attended': '#64748b'
+                };
+                const palette = ['#10b981', '#06b6d4', '#f59e0b', '#ef4444', '#64748b', '#8b5cf6', '#ec4899', '#3b82f6'];
+
+                const labels = [];
+                const data = [];
+                Object.keys(counts).forEach(k => {
+                    if (counts[k] > 0 || (totalEntries === 0 && ['Completed', 'Pending', 'Incomplete'].includes(k))) {
+                        labels.push(k);
+                        data.push(counts[k]);
+                    }
+                });
+
+                if (labels.length === 0) {
+                    labels.push('No Records');
+                    data.push(1);
+                }
+
+                const colors = labels.map((l, i) => standardColorMap[l] || palette[i % palette.length]);
+
+                return {
+                    columnKey: col.key,
+                    columnLabel: col.label,
+                    columnType: col.type,
+                    labels,
+                    data,
+                    colors,
+                    totalEvaluated,
+                    totalEntries
+                };
+            }
+        },
+
+        getAllColumnsPieData(student, monthName = null) {
+            const cols = this.getWeeklyColumns();
+            return cols.map(c => this.getColumnPieData(student, c.key, monthName));
+        },
+
+        getPracticalPieData(student) {
+            const cols = this.getWeeklyColumns();
+            const targetKey = cols.length > 0 ? cols[0].key : 'practical';
+            const pie = this.getColumnPieData(student, targetKey);
+            const res = {};
+            pie.labels.forEach((lbl, idx) => { res[lbl] = pie.data[idx]; });
+            return res;
         },
 
         getStudentDirectUrl(studentId) {
@@ -1530,16 +1701,30 @@
             document.querySelectorAll('.branding-hotlines').forEach(el => { el.textContent = settings.hotlines; });
             document.querySelectorAll('.branding-motto').forEach(el => { el.textContent = settings.motto; });
 
+            // 1. Teacher Photo
             if (settings.teacherPhoto) {
                 document.querySelectorAll('.branding-teacher-photo').forEach(el => { el.src = settings.teacherPhoto; });
             }
 
+            // 2. ERP Logo / Icon Photo
+            const logoSrc = settings.logoImage || settings.logo || 'assets/images/logo.png';
+            document.querySelectorAll('.branding-logo, img[alt="Logo"]').forEach(el => { el.src = logoSrc; });
+
+            // 3. Background Photo / Wallpaper
             if (settings.bgImage) {
                 if (theme === 'dark') {
                     document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(12, 7, 16, 0.88), rgba(15, 8, 20, 0.94)), radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.20) 0%, transparent 60%), radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.15) 0%, transparent 50%), url("${settings.bgImage}")`;
                 } else {
                     document.body.style.backgroundColor = '#f2f2f7';
-                    document.body.style.backgroundImage = 'radial-gradient(at 10% 12%, rgba(219, 234, 254, 0.70) 0px, transparent 55%), radial-gradient(at 88% 10%, rgba(237, 233, 254, 0.65) 0px, transparent 50%), radial-gradient(at 82% 82%, rgba(254, 240, 138, 0.45) 0px, transparent 50%), radial-gradient(at 12% 85%, rgba(254, 205, 211, 0.50) 0px, transparent 55%), radial-gradient(at 50% 45%, rgba(241, 245, 249, 0.95) 0px, transparent 100%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)';
+                    if (settings.bgImage.startsWith('data:') || settings.bgImage.startsWith('http') || (!settings.bgImage.includes('lms_background.png'))) {
+                        document.body.style.backgroundImage = `linear-gradient(135deg, rgba(248, 250, 252, 0.88) 0%, rgba(241, 245, 249, 0.88) 100%), url("${settings.bgImage}")`;
+                        document.body.style.backgroundSize = 'cover';
+                        document.body.style.backgroundAttachment = 'fixed';
+                    } else {
+                        document.body.style.backgroundImage = `radial-gradient(at 10% 12%, rgba(219, 234, 254, 0.70) 0px, transparent 55%), radial-gradient(at 88% 10%, rgba(237, 233, 254, 0.65) 0px, transparent 50%), radial-gradient(at 82% 82%, rgba(254, 240, 138, 0.45) 0px, transparent 50%), radial-gradient(at 12% 85%, rgba(254, 205, 211, 0.50) 0px, transparent 55%), radial-gradient(at 50% 45%, rgba(241, 245, 249, 0.95) 0px, transparent 100%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%), url("${settings.bgImage}")`;
+                        document.body.style.backgroundSize = 'cover';
+                        document.body.style.backgroundAttachment = 'fixed';
+                    }
                 }
             }
         },
