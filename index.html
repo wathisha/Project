@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Science with Laknath | Student & Educator ERP Portal</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Rajdhani:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="theme-light antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation (Apple iOS Frosted Glass Bar) -->
+    <header class="py-4 backdrop-blur-md sticky top-0 z-50 transition">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="assets/images/logo.png" alt="Logo" class="h-12 w-12 object-contain rounded-2xl border border-blue-500/20 p-1 bg-white shadow-sm">
+                <div>
+                    <h1 class="text-xl font-bold font-cinzel text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-500 branding-academy-name">
+                        SCIENCE with LAKNATH
+                    </h1>
+                    <p class="text-xs text-blue-600 font-rajdhani tracking-widest uppercase font-semibold branding-tagline">GRADE 6-11 SCIENCE SPECIALIST & ACADEMIC ERP</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-3">
+                <button type="button" onclick="window.LMSCore.toggleTheme()" class="theme-toggle-btn shadow-sm" title="Toggle Light/Dark Theme">
+                    <i class="fa-solid fa-moon text-indigo-600 mr-1.5"></i>
+                    <span>Dark Mode</span>
+                </button>
+                <a href="admin_login.html" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center space-x-2 transition shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Teacher / Admin Login</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container: Access Hub -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow flex flex-col justify-center w-full space-y-8">
+
+        <!-- Hero Welcome Showcase Banner -->
+        <section class="glass-panel p-6 sm:p-10 border-white/60 relative overflow-hidden shadow-xl">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                
+                <!-- Left Details -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-3.5 py-1 bg-blue-500/10 border border-blue-500/30 text-blue-700 text-xs font-extrabold rounded-full uppercase tracking-wider">
+                            GRADE 6 – 11 SCIENCE
+                        </span>
+                        <span class="px-3.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-mono font-bold rounded-full branding-motto">
+                            UNDERSTAND TODAY, SUCCEED TOMORROW
+                        </span>
+                    </div>
+
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-cinzel leading-tight">
+                        UNDERSTAND TODAY, <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-amber-500">SUCCEED TOMORROW</span>
+                    </h2>
+
+                    <div class="space-y-1 text-sm text-slate-600">
+                        <p class="font-bold text-slate-900 font-cinzel text-lg branding-teacher-name">Mr. Laknath Amarasinghe</p>
+                        <p class="text-xs text-slate-500 font-medium branding-teacher-title">Head Science Specialist & IT Systems Lead</p>
+                        <p class="text-xs text-indigo-600 font-mono font-bold">Hotlines: <span class="branding-hotlines">071 781 2092 | 077 161 4260</span></p>
+                    </div>
+
+                    <!-- What I Offer Checklist -->
+                    <div class="pt-2">
+                        <h4 class="text-xs font-bold font-cinzel text-blue-700 uppercase tracking-wider mb-2">What We Offer:</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
+                            <div class="flex items-center space-x-2"><i class="fa-solid fa-circle-check text-blue-600"></i><span>Clear Conceptual Explanations</span></div>
+                            <div class="flex items-center space-x-2"><i class="fa-solid fa-circle-check text-blue-600"></i><span>Exam Focused Learning & Revisions</span></div>
+                            <div class="flex items-center space-x-2"><i class="fa-solid fa-circle-check text-blue-600"></i><span>Syllabus Concept Building</span></div>
+                            <div class="flex items-center space-x-2"><i class="fa-solid fa-circle-check text-blue-600"></i><span>Past Paper & Model Paper Practice</span></div>
+                            <div class="flex items-center space-x-2 sm:col-span-2"><i class="fa-solid fa-circle-check text-amber-500"></i><span>Live Practical Lab Sessions & WhatsApp / Zoom Support</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Artwork Poster Card -->
+                <div class="lg:col-span-5 flex justify-center">
+                    <div class="relative max-w-xs w-full">
+                        <img src="assets/images/teacher_banner.png" alt="Teacher Avatar" class="branding-teacher-photo rounded-3xl border-2 border-white/80 shadow-xl bg-white object-cover w-full">
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================================================= -->
+        <!-- APPLE iOS DASHBOARD WIDGETS DECK: ANALOGUE CLOCK & INTERACTIVE CALENDAR   -->
+        <!-- ========================================================================= -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            
+            <!-- Left: iOS Analogue Clock Widget (5 columns) -->
+            <div class="lg:col-span-5 glass-panel p-6 flex flex-col items-center justify-between border-white/70 shadow-xl relative overflow-hidden">
+                <div class="w-full flex items-center justify-between border-b border-slate-200/60 pb-3 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Analogue Clock</h3>
+                            <p class="text-[11px] text-slate-500">Apple iOS Real-Time Dial</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
+                    </span>
+                </div>
+
+                <!-- Circular Watch Dial -->
+                <div class="my-2">
+                    <div class="ios-clock-dial" id="analogueClock">
+                        <!-- Clock Numbers -->
+                        <div class="ios-clock-num" style="top: 8px; left: calc(50% - 10px);">12</div>
+                        <div class="ios-clock-num" style="top: calc(50% - 10px); right: 8px;">3</div>
+                        <div class="ios-clock-num" style="bottom: 8px; left: calc(50% - 10px);">6</div>
+                        <div class="ios-clock-num" style="top: calc(50% - 10px); left: 8px;">9</div>
+
+                        <!-- Clock Hands -->
+                        <div class="ios-clock-hand ios-clock-hour" id="clockHourHand"></div>
+                        <div class="ios-clock-hand ios-clock-minute" id="clockMinuteHand"></div>
+                        <div class="ios-clock-hand ios-clock-second" id="clockSecondHand"></div>
+                        
+                        <!-- Center Pin -->
+                        <div class="ios-clock-center-pin"></div>
+                    </div>
+                </div>
+
+                <!-- Digital Clock & Date Summary -->
+                <div class="w-full pt-4 mt-2 border-t border-slate-200/60 text-center space-y-1">
+                    <div class="text-2xl font-extrabold font-mono text-slate-900 tracking-tight" id="digitalClockText">
+                        --:--:-- --
+                    </div>
+                    <div class="text-xs font-semibold text-slate-600" id="digitalDateText">
+                        Loading date...
+                    </div>
+                    <div class="pt-1">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+                            <i class="fa-solid fa-location-dot text-blue-500"></i> Sri Lanka Standard Time (UTC+05:30)
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: iOS General Academic Calendar Widget (7 columns) -->
+            <div class="lg:col-span-7 glass-panel p-6 flex flex-col justify-between border-white/70 shadow-xl relative overflow-hidden">
+                <!-- Calendar Header & Navigation Controls -->
+                <div class="flex items-center justify-between border-b border-slate-200/60 pb-3 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">General Calendar</h3>
+                            <p class="text-[11px] text-slate-500">Academic Schedule & Monthly Planner</p>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Month Switcher -->
+                    <div class="flex items-center space-x-1.5">
+                        <button type="button" id="calPrevBtn" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition font-bold" title="Previous Month">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button type="button" id="calTodayBtn" class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm" title="Jump to Today">
+                            Today
+                        </button>
+                        <button type="button" id="calNextBtn" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-xs transition font-bold" title="Next Month">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Month Display Banner -->
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-base font-extrabold text-slate-900 font-cinzel" id="calMonthTitle">September 2026</h4>
+                    <span class="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                        <i class="fa-solid fa-circle text-[8px] mr-1 text-amber-500"></i>Class Session Dates
+                    </span>
+                </div>
+
+                <!-- Calendar Weekday Headers -->
+                <div class="grid grid-cols-7 gap-1 text-center mb-1">
+                    <span class="ios-cal-weekday text-rose-500">Sun</span>
+                    <span class="ios-cal-weekday">Mon</span>
+                    <span class="ios-cal-weekday">Tue</span>
+                    <span class="ios-cal-weekday">Wed</span>
+                    <span class="ios-cal-weekday">Thu</span>
+                    <span class="ios-cal-weekday">Fri</span>
+                    <span class="ios-cal-weekday text-indigo-500">Sat</span>
+                </div>
+
+                <!-- Dynamic Calendar Day Grid -->
+                <div class="ios-calendar-grid" id="calDaysGrid">
+                    <!-- Populated dynamically by JavaScript -->
+                </div>
+
+                <!-- Selected Date Status Bar -->
+                <div id="calSelectedInfo" class="mt-4 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs text-slate-700">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar-check text-blue-600"></i>
+                        <span id="calSelectedText">Select any date to view class details</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-mono" id="calAcademicStatus">ERP Active</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Dual Access Cards Grid (Student & Teacher Portals) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+            
+            <!-- Student Portal Login Card -->
+            <div class="glass-panel p-8 space-y-6 flex flex-col justify-between border-white/70 hover:border-blue-500/40 transition shadow-xl relative overflow-hidden">
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 text-xl">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-900">Student Account Login</h3>
+                            <p class="text-xs text-slate-500">Student Credentials Access</p>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Enter your Student ID / Username and Password to access your personal academic marks, unit test scorecards, progress analytics, and join live classes.
+                    </p>
+
+                    <!-- Student Login Error -->
+                    <div id="stLoginError" class="hidden p-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-600 text-xs text-center font-semibold">
+                        Invalid Student ID, Username or Password. Please try again.
+                    </div>
+
+                    <!-- Student Login Form -->
+                    <form id="studentAccessForm" class="space-y-3 pt-1">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Student ID / Username / Email:</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-id-card absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" id="studentUserInput" placeholder="e.g. ST-84092 or alex" required class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500 font-mono tracking-wider">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Account Password:</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="password" id="studentPassInput" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-300 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500 font-mono tracking-wider">
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1.5 flex items-center justify-between">
+                                <span>Demo Credentials:</span>
+                                <span class="text-blue-600 font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-200">ST-84092 / student123</span>
+                            </p>
+                        </div>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20 transition">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <span>Log In to Student Dashboard</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="pt-4 border-t border-slate-200/80 text-center">
+                    <p class="text-xs text-slate-500">
+                        <i class="fa-solid fa-shield-check mr-1 text-emerald-500"></i> Encrypted authentication & personalized academic scorecard
+                    </p>
+                </div>
+            </div>
+
+            <!-- Teacher / Admin Management Card -->
+            <div class="glass-panel p-8 space-y-6 flex flex-col justify-between border-white/70 hover:border-indigo-500/40 transition shadow-xl relative overflow-hidden">
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 text-xl">
+                            <i class="fa-solid fa-user-gear"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-900">Teacher & Educator Portal</h3>
+                            <p class="text-xs text-indigo-600 font-medium">LMS Admin Management</p>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Restricted portal for <span class="text-blue-700 font-semibold branding-teacher-name">Mr. Laknath Amarasinghe</span> and authorized educators to manage student records, dynamic weekly evaluations, grade documents vault, and ERP settings.
+                    </p>
+                </div>
+
+                <div class="space-y-3 pt-4 border-t border-slate-200/80">
+                    <a href="admin_login.html" class="w-full bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold py-3 rounded-2xl text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition shadow-sm">
+                        <i class="fa-solid fa-key text-blue-600"></i>
+                        <span>Log In to Teacher Portal</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 text-center text-xs text-slate-500 transition">
+        <p>&copy; 2026 Science with Laknath. Interactive Learning Management System & School ERP.</p>
+    </footer>
+
+    <script src="assets/js/lms-core.js"></script>
+    <script>
+        // =========================================================================
+        // 1. APPLE iOS ANALOGUE CLOCK LOGIC
+        // =========================================================================
+        function initAnalogueClock() {
+            const dial = document.getElementById('analogueClock');
+            if (!dial) return;
+
+            // Generate 60 tick marks around the clock perimeter
+            for (let i = 0; i < 60; i++) {
+                if (i % 15 === 0) continue; // Skip 12, 3, 6, 9 positions (have numbers)
+                const mark = document.createElement('div');
+                mark.className = 'ios-clock-mark' + (i % 5 === 0 ? ' major' : '');
+                mark.style.transform = `rotate(${i * 6}deg)`;
+                dial.appendChild(mark);
+            }
+
+            const hourHand = document.getElementById('clockHourHand');
+            const minuteHand = document.getElementById('clockMinuteHand');
+            const secondHand = document.getElementById('clockSecondHand');
+            const digitalTime = document.getElementById('digitalClockText');
+            const digitalDate = document.getElementById('digitalDateText');
+
+            function updateClock() {
+                const now = new Date();
+
+                const ms = now.getMilliseconds();
+                const seconds = now.getSeconds() + ms / 1000;
+                const minutes = now.getMinutes() + seconds / 60;
+                const hours = (now.getHours() % 12) + minutes / 60;
+
+                const secondAngle = seconds * 6;
+                const minuteAngle = minutes * 6;
+                const hourAngle = hours * 30;
+
+                if (secondHand) secondHand.style.transform = `rotate(${secondAngle}deg)`;
+                if (minuteHand) minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
+                if (hourHand) hourHand.style.transform = `rotate(${hourAngle}deg)`;
+
+                if (digitalTime) {
+                    digitalTime.textContent = now.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                    });
+                }
+
+                if (digitalDate) {
+                    digitalDate.textContent = now.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // =========================================================================
+        // 2. APPLE iOS GENERAL CALENDAR LOGIC
+        // =========================================================================
+        function initGeneralCalendar() {
+            let currentDate = new Date();
+            let selectedDate = new Date();
+
+            const monthTitle = document.getElementById('calMonthTitle');
+            const daysGrid = document.getElementById('calDaysGrid');
+            const prevBtn = document.getElementById('calPrevBtn');
+            const nextBtn = document.getElementById('calNextBtn');
+            const todayBtn = document.getElementById('calTodayBtn');
+            const selectedText = document.getElementById('calSelectedText');
+            const statusText = document.getElementById('calAcademicStatus');
+
+            const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            function renderCalendar() {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                if (monthTitle) {
+                    monthTitle.textContent = `${monthNames[month]} ${year}`;
+                }
+
+                if (!daysGrid) return;
+                daysGrid.innerHTML = '';
+
+                // First day of month (0 = Sun, 1 = Mon, ..., 6 = Sat)
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                // Total days in current month
+                const totalDays = new Date(year, month + 1, 0).getDate();
+                // Total days in previous month
+                const prevMonthDays = new Date(year, month, 0).getDate();
+
+                const today = new Date();
+
+                // Previous month padding days
+                for (let i = firstDayIndex; i > 0; i--) {
+                    const dayNum = prevMonthDays - i + 1;
+                    const cell = document.createElement('div');
+                    cell.className = 'ios-cal-day other-month';
+                    cell.textContent = dayNum;
+                    daysGrid.appendChild(cell);
+                }
+
+                // Current month days
+                for (let day = 1; day <= totalDays; day++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'ios-cal-day';
+                    cell.textContent = day;
+
+                    const dateObj = new Date(year, month, day);
+                    const dayOfWeek = dateObj.getDay();
+
+                    // Check if today
+                    if (
+                        day === today.getDate() &&
+                        month === today.getMonth() &&
+                        year === today.getFullYear()
+                    ) {
+                        cell.classList.add('today');
+                    }
+
+                    // Check if selected
+                    if (
+                        day === selectedDate.getDate() &&
+                        month === selectedDate.getMonth() &&
+                        year === selectedDate.getFullYear()
+                    ) {
+                        cell.classList.add('selected');
+                    }
+
+                    // Weekend class session indicator (Saturdays & Sundays have Science classes)
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        cell.classList.add('has-event');
+                    }
+
+                    cell.addEventListener('click', () => {
+                        selectedDate = new Date(year, month, day);
+                        renderCalendar();
+                        updateSelectedInfo(selectedDate);
+                    });
+
+                    daysGrid.appendChild(cell);
+                }
+
+                // Next month padding days to complete grid rows
+                const totalCellsSoFar = firstDayIndex + totalDays;
+                const nextMonthDaysNeeded = (7 - (totalCellsSoFar % 7)) % 7;
+                for (let day = 1; day <= nextMonthDaysNeeded; day++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'ios-cal-day other-month';
+                    cell.textContent = day;
+                    daysGrid.appendChild(cell);
+                }
+            }
+
+            function updateSelectedInfo(date) {
+                if (!selectedText) return;
+                const formatted = date.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                const dayOfWeek = date.getDay();
+                if (dayOfWeek === 6 || dayOfWeek === 0) {
+                    selectedText.textContent = `${formatted}: Live Science Theory & Practical Session`;
+                    if (statusText) {
+                        statusText.textContent = "Class Day";
+                        statusText.className = "text-[10px] text-amber-600 font-bold font-mono bg-amber-50 px-2 py-0.5 rounded";
+                    }
+                } else {
+                    selectedText.textContent = `${formatted}: Academic Study & Revision Portal Active`;
+                    if (statusText) {
+                        statusText.textContent = "Self Study";
+                        statusText.className = "text-[10px] text-blue-600 font-bold font-mono bg-blue-50 px-2 py-0.5 rounded";
+                    }
+                }
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() - 1);
+                    renderCalendar();
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    renderCalendar();
+                });
+            }
+
+            if (todayBtn) {
+                todayBtn.addEventListener('click', () => {
+                    currentDate = new Date();
+                    selectedDate = new Date();
+                    renderCalendar();
+                    updateSelectedInfo(selectedDate);
+                });
+            }
+
+            renderCalendar();
+            updateSelectedInfo(new Date());
+        }
+
+        // =========================================================================
+        // 3. INITIALIZATION & STUDENT AUTHENTICATION
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.LMSCore) {
+                window.LMSCore.applyThemeAndBranding();
+            }
+            initAnalogueClock();
+            initGeneralCalendar();
+        });
+
+        document.getElementById('studentAccessForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userVal = document.getElementById('studentUserInput').value.trim();
+            const passVal = document.getElementById('studentPassInput').value.trim();
+            const errBox = document.getElementById('stLoginError');
+
+            if (window.LMSCore) {
+                const authenticatedStudent = await window.LMSCore.authenticateStudent(userVal, passVal);
+                if (authenticatedStudent) {
+                    window.location.href = `student.html?id=${encodeURIComponent(authenticatedStudent.student_info.student_id)}`;
+                } else {
+                    errBox.classList.remove('hidden');
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
