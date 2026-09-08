@@ -114,7 +114,7 @@ function parseBody(req) {
 }
 
 // HTTP Server
-const server = http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
     // CORS Preflight
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -491,10 +491,13 @@ const server = http.createServer(async (req, res) => {
         console.error('Server Request Error:', apiErr);
         sendJson(res, 500, { error: apiErr.message || 'Internal Server Error' });
     }
-});
+}
 
-// Initialize database connection & start server
-db.init().then(() => {
+const server = http.createServer(handleRequest);
+
+// Start standalone server if run directly (Render, Railway, VPS, Localhost)
+if (require.main === module) {
+    db.init().then(() => {
     server.listen(PORT, HOST, () => {
         const networkIps = getNetworkIps();
         console.log('============================================================================');
@@ -519,3 +522,7 @@ db.init().then(() => {
     console.error('Fatal initialization error:', err);
     process.exit(1);
 });
+
+}
+
+module.exports = handleRequest;
