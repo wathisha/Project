@@ -857,7 +857,26 @@
                 }
             }
 
-            // 2. Fetch static erp-config.json
+            // 2. Fetch from Cloud JSON endpoint (e.g. npoint.io) if configured
+            const cloudConfig = this.getCloudConfig();
+            if (cloudConfig.cloudJsonStudentsUrl && cloudConfig.cloudJsonStudentsUrl.trim() !== '') {
+                try {
+                    const resCloud = await fetch(cloudConfig.cloudJsonStudentsUrl + (cloudConfig.cloudJsonStudentsUrl.includes('?') ? '&' : '?') + 't=' + Date.now());
+                    if (resCloud.ok) {
+                        const cloudData = await resCloud.json();
+                        const cloudSettings = cloudData.settings || (cloudData.config && cloudData.config.settings);
+                        if (cloudSettings) {
+                            localStorage.setItem('lms_settings', JSON.stringify(cloudSettings));
+                        }
+                        const cloudCols = cloudData.weeklyColumns || (cloudData.config && cloudData.config.weeklyColumns);
+                        if (cloudCols && Array.isArray(cloudCols)) {
+                            localStorage.setItem('lms_weekly_columns', JSON.stringify(cloudCols));
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // 3. Fetch static erp-config.json
             try {
                 const res = await fetch('assets/data/erp-config.json?t=' + Date.now());
                 if (res.ok) {
@@ -881,40 +900,94 @@
         },
 
         // Background Auto-Sync across all connected devices (PCs, Tablets, Phones)
-        startRealtimeSync(intervalMs = 10000, onUpdateCallback = null) {
+        startRealtimeSync(intervalMs = 8000, onUpdateCallback = null) {
             if (window._lmsSyncInterval) clearInterval(window._lmsSyncInterval);
             window._lmsSyncInterval = setInterval(async () => {
                 const serverBase = this.getServerBaseUrl();
-                if (!serverBase) return;
-                try {
-                    const res = await fetch(`${serverBase}/api/students?t=${Date.now()}`);
-                    if (res.ok) {
-                        const serverStudents = await res.json();
-                        const currentLocal = localStorage.getItem('lms_students');
-                        const serverStr = JSON.stringify(serverStudents);
-                        if (currentLocal !== serverStr) {
-                            localStorage.setItem('lms_students', serverStr);
-                            if (typeof onUpdateCallback === 'function') {
-                                onUpdateCallback('students', serverStudents);
+                const cloud = this.getCloudConfig();
+
+                // 1. Sync via Server REST API
+                if (serverBase) {
+                    try {
+                        const res = await fetch(`${serverBase}/api/students?t=${Date.now()}`);
+                        if (res.ok) {
+                            const serverStudents = await res.json();
+                            const currentLocal = localStorage.getItem('lms_students');
+                            const serverStr = JSON.stringify(serverStudents);
+                            if (currentLocal !== serverStr) {
+                                localStorage.setItem('lms_students', serverStr);
+                                if (typeof onUpdateCallback === 'function') {
+                                    onUpdateCallback('students', serverStudents);
+                                }
                             }
                         }
-                    }
-                } catch (e) {}
+
+                        // Poll for branding & visual config updates
+                        const resConfig = await fetch(`${serverBase}/api/config?t=${Date.now()}`);
+                        if (resConfig.ok) {
+                            const cfg = await resConfig.json();
+                            if (cfg && cfg.settings) {
+                                const curSettingsStr = localStorage.getItem('lms_settings');
+                                const newSettingsStr = JSON.stringify(cfg.settings);
+                                if (curSettingsStr !== newSettingsStr) {
+                                    localStorage.setItem('lms_settings', newSettingsStr);
+                                    this.applyThemeAndBranding();
+                                    if (typeof onUpdateCallback === 'function') {
+                                        onUpdateCallback('settings', cfg.settings);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                // 2. Sync via Cloud JSON endpoint (e.g. npoint.io)
+                if (cloud.cloudJsonStudentsUrl && cloud.cloudJsonStudentsUrl.trim() !== '') {
+                    try {
+                        const resCloud = await fetch(cloud.cloudJsonStudentsUrl + (cloud.cloudJsonStudentsUrl.includes('?') ? '&' : '?') + 't=' + Date.now());
+                        if (resCloud.ok) {
+                            const cloudData = await resCloud.json();
+                            const cloudSettings = cloudData.settings || (cloudData.config && cloudData.config.settings);
+                            if (cloudSettings) {
+                                const curSettingsStr = localStorage.getItem('lms_settings');
+                                const newSettingsStr = JSON.stringify(cloudSettings);
+                                if (curSettingsStr !== newSettingsStr) {
+                                    localStorage.setItem('lms_settings', newSettingsStr);
+                                    this.applyThemeAndBranding();
+                                    if (typeof onUpdateCallback === 'function') {
+                                        onUpdateCallback('settings', cloudSettings);
+                                    }
+                                }
+                            }
+                            const studentsData = cloudData.students || cloudData.data || (Array.isArray(cloudData) ? cloudData : null);
+                            if (studentsData && Array.isArray(studentsData)) {
+                                const currentLocal = localStorage.getItem('lms_students');
+                                const serverStr = JSON.stringify(studentsData);
+                                if (currentLocal !== serverStr) {
+                                    localStorage.setItem('lms_students', serverStr);
+                                    if (typeof onUpdateCallback === 'function') {
+                                        onUpdateCallback('students', studentsData);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
             }, intervalMs);
         },
 
-        // Push updates to Node server and Cloud JSON in real-time
+        // Push updates to Node server and Cloud JSON in real-time (Global Sync across all devices)
         async pushToCloud(type, payload) {
             const cloud = this.getCloudConfig();
             const serverBase = this.getServerBaseUrl();
             const currentUser = this.getCurrentUser();
             const devInfo = this.getDeviceInfo();
 
-            // 1. Node Server REST API
+            // 1. Node Server / Vercel REST API
             if (serverBase) {
                 try {
                     let endpoint = '/api/students';
-                    if (type === 'config') endpoint = '/api/config';
+                    if (type === 'config' || type === 'settings') endpoint = '/api/config';
                     else if (type === 'users') endpoint = '/api/users';
                     else if (type === 'documents') endpoint = '/api/documents';
                     else if (type === 'logs') endpoint = '/api/logs';
@@ -933,15 +1006,42 @@
                 }
             }
 
-            // 2. Cloud JSON endpoint fallback (npoint.io)
-            if (cloud.cloudJsonStudentsUrl && type === 'students') {
+            // 2. Universal Cloud JSON Endpoint (e.g. npoint.io) - Syncs both students & visual config globally
+            if (cloud.cloudJsonStudentsUrl && cloud.cloudJsonStudentsUrl.trim() !== '') {
                 try {
+                    let bodyToSend = payload;
+                    // Attempt to fetch current cloud JSON to merge students & config
+                    try {
+                        const existingRes = await fetch(cloud.cloudJsonStudentsUrl + (cloud.cloudJsonStudentsUrl.includes('?') ? '&' : '?') + 't=' + Date.now());
+                        if (existingRes.ok) {
+                            const existingData = await existingRes.json();
+                            if (Array.isArray(existingData)) {
+                                if (type === 'students') {
+                                    bodyToSend = payload;
+                                } else {
+                                    bodyToSend = {
+                                        students: existingData,
+                                        config: type === 'config' ? payload : this.getGlobalConfigObject(),
+                                        settings: this.getSettings()
+                                    };
+                                }
+                            } else if (typeof existingData === 'object' && existingData !== null) {
+                                if (type === 'students') existingData.students = payload;
+                                else if (type === 'config') existingData.config = payload;
+                                existingData.settings = this.getSettings();
+                                bodyToSend = existingData;
+                            }
+                        }
+                    } catch (fetchErr) {}
+
                     await fetch(cloud.cloudJsonStudentsUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(bodyToSend)
                     });
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Cloud JSON endpoint sync error:", e);
+                }
             }
         },
 
@@ -958,6 +1058,13 @@
             localStorage.setItem('lms_settings', JSON.stringify(updated));
             this.applyThemeAndBranding();
             await this.pushToCloud('config', this.getGlobalConfigObject());
+
+            try {
+                if (typeof window !== 'undefined' && 'BroadcastChannel' in window && lmsBroadcast) {
+                    lmsBroadcast.postMessage({ type: 'branding', settings: updated });
+                }
+            } catch (e) {}
+
             return updated;
         },
 
@@ -1701,31 +1808,45 @@
             document.querySelectorAll('.branding-hotlines').forEach(el => { el.textContent = settings.hotlines; });
             document.querySelectorAll('.branding-motto').forEach(el => { el.textContent = settings.motto; });
 
-            // 1. Teacher Photo
+            // 1. Teacher Photo (Target all profile and avatar elements)
             if (settings.teacherPhoto) {
-                document.querySelectorAll('.branding-teacher-photo').forEach(el => { el.src = settings.teacherPhoto; });
+                document.querySelectorAll('.branding-teacher-photo, #headerUserAvatar, #dropdownUserAvatar, #adminStAvatar, #stTeacherPhoto, .teacher-avatar').forEach(el => {
+                    el.src = settings.teacherPhoto;
+                });
             }
 
-            // 2. ERP Logo / Icon Photo
+            // 2. ERP Logo / Icon Photo (Target logo images & browser tab icon)
             const logoSrc = settings.logoImage || settings.logo || 'assets/images/logo.png';
-            document.querySelectorAll('.branding-logo, img[alt="Logo"]').forEach(el => { el.src = logoSrc; });
+            document.querySelectorAll('.branding-logo, img[alt="Logo"], .erp-logo').forEach(el => {
+                el.src = logoSrc;
+            });
+            document.querySelectorAll("link[rel*='icon']").forEach(el => {
+                el.href = logoSrc;
+            });
 
-            // 3. Background Photo / Wallpaper
+            // 3. Background Photo / Wallpaper (Vivid, high-contrast display for both themes)
             if (settings.bgImage) {
+                const isCustomBg = settings.bgImage.startsWith('data:') || settings.bgImage.startsWith('http') || (!settings.bgImage.includes('lms_background.png'));
+                const bgUrl = settings.bgImage;
+
                 if (theme === 'dark') {
-                    document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(12, 7, 16, 0.88), rgba(15, 8, 20, 0.94)), radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.20) 0%, transparent 60%), radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.15) 0%, transparent 50%), url("${settings.bgImage}")`;
+                    document.body.style.backgroundColor = '#0c0710';
+                    if (isCustomBg) {
+                        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(12, 7, 16, 0.65), rgba(15, 8, 20, 0.75)), url("${bgUrl}")`;
+                    } else {
+                        document.body.style.backgroundImage = `linear-gradient(to bottom, rgba(12, 7, 16, 0.75), rgba(15, 8, 20, 0.82)), url("${bgUrl}")`;
+                    }
                 } else {
                     document.body.style.backgroundColor = '#f2f2f7';
-                    if (settings.bgImage.startsWith('data:') || settings.bgImage.startsWith('http') || (!settings.bgImage.includes('lms_background.png'))) {
-                        document.body.style.backgroundImage = `linear-gradient(135deg, rgba(248, 250, 252, 0.88) 0%, rgba(241, 245, 249, 0.88) 100%), url("${settings.bgImage}")`;
-                        document.body.style.backgroundSize = 'cover';
-                        document.body.style.backgroundAttachment = 'fixed';
+                    if (isCustomBg) {
+                        document.body.style.backgroundImage = `linear-gradient(135deg, rgba(248, 250, 252, 0.70) 0%, rgba(241, 245, 249, 0.70) 100%), url("${bgUrl}")`;
                     } else {
-                        document.body.style.backgroundImage = `radial-gradient(at 10% 12%, rgba(219, 234, 254, 0.70) 0px, transparent 55%), radial-gradient(at 88% 10%, rgba(237, 233, 254, 0.65) 0px, transparent 50%), radial-gradient(at 82% 82%, rgba(254, 240, 138, 0.45) 0px, transparent 50%), radial-gradient(at 12% 85%, rgba(254, 205, 211, 0.50) 0px, transparent 55%), radial-gradient(at 50% 45%, rgba(241, 245, 249, 0.95) 0px, transparent 100%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%), url("${settings.bgImage}")`;
-                        document.body.style.backgroundSize = 'cover';
-                        document.body.style.backgroundAttachment = 'fixed';
+                        document.body.style.backgroundImage = `radial-gradient(at 10% 12%, rgba(219, 234, 254, 0.70) 0px, transparent 55%), radial-gradient(at 88% 10%, rgba(237, 233, 254, 0.65) 0px, transparent 50%), radial-gradient(at 82% 82%, rgba(254, 240, 138, 0.45) 0px, transparent 50%), radial-gradient(at 12% 85%, rgba(254, 205, 211, 0.50) 0px, transparent 55%), radial-gradient(at 50% 45%, rgba(241, 245, 249, 0.95) 0px, transparent 100%), linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)`;
                     }
                 }
+                document.body.style.backgroundSize = 'cover';
+                document.body.style.backgroundPosition = 'center center';
+                document.body.style.backgroundAttachment = 'fixed';
             }
         },
 
@@ -1930,3 +2051,17 @@ CREATE TABLE IF NOT EXISTS activity_logs (
         window.LMSCore.initGlobalSync();
     });
 })();
+
+    // Cross-tab real-time sync channel
+    let lmsBroadcast = null;
+    try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            lmsBroadcast = new BroadcastChannel('lms_global_sync');
+            lmsBroadcast.onmessage = (ev) => {
+                if (ev.data && (ev.data.type === 'settings' || ev.data.type === 'branding')) {
+                    window.LMSCore.applyThemeAndBranding();
+                    if (typeof refreshHeaderUserInfo === 'function') refreshHeaderUserInfo();
+                }
+            };
+        }
+    } catch (e) {}
