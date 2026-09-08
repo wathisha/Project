@@ -7,8 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "migrate": "node migrate-json-to-mysql.js",
-    "test:db": "node test-mysql-connection.js",
-    "build": "echo 'Static frontend and serverless routes ready'"
+    "test:db": "node test-mysql-connection.js"
   },
   "keywords": [
     "lms",
