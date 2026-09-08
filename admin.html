@@ -1121,9 +1121,14 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-extrabold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition">
-                        <i class="fa-solid fa-floppy-disk mr-1"></i> Save ERP Settings
-                    </button>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button type="submit" class="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-extrabold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk"></i> Save ERP Settings
+                        </button>
+                        <button type="button" onclick="exportMasterConfigFile()" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-bold px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center gap-1.5 shadow-sm" title="Download updated erp-config.json with embedded photos to commit directly to GitHub">
+                            <i class="fa-solid fa-file-export"></i> Export Master Config JSON
+                        </button>
+                    </div>
                 </form>
 
             </div>
@@ -1587,10 +1592,11 @@
             });
         });
 
-        // Refresh Header User Info with Active User & Device
+        // Refresh Header User Info with Active User & Device & Custom Photos
         function refreshHeaderUserInfo() {
             const currentUser = window.LMSCore.getCurrentUser();
             const devInfo = window.LMSCore.getDeviceInfo();
+            const settings = window.LMSCore.getSettings();
 
             document.getElementById('headerUserName').textContent = currentUser.name || 'Admin User';
             document.getElementById('headerUserRole').textContent = currentUser.roleName || currentUser.role || 'Staff';
@@ -1598,9 +1604,11 @@
             document.getElementById('dropdownUserRole').textContent = currentUser.roleName || currentUser.role || 'Staff';
             document.getElementById('dropdownDeviceDetail').textContent = `Device: ${devInfo.summary}`;
 
-            if (currentUser.avatar) {
-                document.getElementById('headerUserAvatar').src = currentUser.avatar;
-            }
+            const avatarSrc = settings.teacherPhoto || currentUser.avatar || 'assets/images/teacher_banner.png';
+            const headerAvatar = document.getElementById('headerUserAvatar');
+            if (headerAvatar) headerAvatar.src = avatarSrc;
+            const dropdownAvatar = document.getElementById('dropdownUserAvatar');
+            if (dropdownAvatar) dropdownAvatar.src = avatarSrc;
 
             const headerDeviceBadge = document.getElementById('headerDeviceBadge');
             if (headerDeviceBadge) {
@@ -2865,10 +2873,22 @@
             const logoImage = document.getElementById('custLogoPhoto').value.trim() || 'assets/images/logo.png';
             const bgImage = document.getElementById('custBgImage').value.trim() || 'assets/images/lms_background.png';
 
+            // Also update current active user session avatar
+            const curUser = window.LMSCore.getCurrentUser();
+            if (curUser) {
+                curUser.avatar = teacherPhoto;
+                sessionStorage.setItem('lms_current_user', JSON.stringify(curUser));
+                localStorage.setItem('lms_current_user', JSON.stringify(curUser));
+            }
+
             await window.LMSCore.saveSettings({ academyName, tagline, teacherName, teacherTitle, hotlines, motto, announcement, teacherPhoto, logoImage, bgImage });
             window.LMSCore.saveCloudConfig({ nodeServerUrl, cloudJsonStudentsUrl });
 
-            alert('ERP Settings & Endpoints saved successfully!');
+            // Apply immediately to current view
+            refreshHeaderUserInfo();
+            window.LMSCore.applyThemeAndBranding();
+
+            alert('ERP Settings, Teacher Photo, ERP Icon & Background Wallpaper saved and globally synced!');
         });
 
         // =========================================================================
@@ -3069,6 +3089,17 @@
         function resetBgField() {
             document.getElementById('custBgImage').value = 'assets/images/lms_background.png';
             document.getElementById('previewBgThumbnail').style.backgroundImage = "url('assets/images/lms_background.png')";
+        }
+
+        function exportMasterConfigFile() {
+            const fullConfig = window.LMSCore.getGlobalConfigObject();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullConfig, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "erp-config.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
         }
     </script>
 </body>
