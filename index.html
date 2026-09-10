@@ -235,7 +235,7 @@
                             <i class="fa-solid fa-graduation-cap"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold font-cinzel text-slate-400">Student Account Login</h3>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-900">Student Account Login</h3>
                             <p class="text-xs text-slate-500">Student Credentials Access</p>
                         </div>
                     </div>
@@ -276,6 +276,20 @@
                             <span>Log In to Student Dashboard</span>
                         </button>
                     </form>
+
+                    <!-- Registered Student Accounts Quick Select -->
+                    <div class="pt-3 border-t border-slate-200/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-users text-blue-600"></i>
+                                <span>Active Student Accounts:</span>
+                            </span>
+                            <span id="stAccountsCount" class="text-[10px] font-mono font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">Loading...</span>
+                        </div>
+                        <div id="quickStudentChips" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                            <!-- Populated dynamically with registered students -->
+                        </div>
+                    </div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-200/80 text-center">
@@ -293,7 +307,7 @@
                             <i class="fa-solid fa-user-gear"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold font-cinzel text-slate-400">Teacher & Educator Portal</h3>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-900">Teacher & Educator Portal</h3>
                             <p class="text-xs text-indigo-600 font-medium">LMS Admin Management</p>
                         </div>
                     </div>
@@ -538,9 +552,47 @@
         // =========================================================================
         // 3. INITIALIZATION & STUDENT AUTHENTICATION
         // =========================================================================
-        document.addEventListener('DOMContentLoaded', () => {
+
+        async function loadRegisteredStudentAccounts() {
+            if (!window.LMSCore) return;
+            const students = await window.LMSCore.getStudents();
+            const countEl = document.getElementById('stAccountsCount');
+            const chipsEl = document.getElementById('quickStudentChips');
+            if (!chipsEl) return;
+            chipsEl.innerHTML = '';
+
+            if (countEl) countEl.textContent = `${students.length} Registered`;
+
+            if (students.length === 0) {
+                chipsEl.innerHTML = '<span class="text-[11px] text-slate-400 italic">No registered students found.</span>';
+                return;
+            }
+
+            students.forEach(st => {
+                const info = st.student_info || {};
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-slate-200 hover:border-blue-300 text-[11px] text-slate-700 transition font-medium text-left shadow-2xs";
+                chip.title = `Click to auto-fill ${info.name} (${info.student_id})`;
+                chip.innerHTML = `
+                    <img src="${info.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(info.name)}" class="w-4 h-4 rounded-full object-cover">
+                    <span class="font-semibold truncate max-w-[100px]">${info.name.split(' ')[0]}</span>
+                    <span class="font-mono text-[9px] text-slate-500">(${info.student_id})</span>
+                `;
+                chip.onclick = () => {
+                    document.getElementById('studentUserInput').value = info.student_id;
+                    document.getElementById('studentPassInput').value = info.password || 'student123';
+                    const errBox = document.getElementById('stLoginError');
+                    if (errBox) errBox.classList.add('hidden');
+                };
+                chipsEl.appendChild(chip);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
             if (window.LMSCore) {
                 window.LMSCore.applyThemeAndBranding();
+                await loadRegisteredStudentAccounts();
             }
             initAnalogueClock();
             initGeneralCalendar();

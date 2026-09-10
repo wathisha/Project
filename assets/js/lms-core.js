@@ -959,14 +959,16 @@
                                     }
                                 }
                             }
-                            const studentsData = cloudData.students || cloudData.data || (Array.isArray(cloudData) ? cloudData : null);
-                            if (studentsData && Array.isArray(studentsData)) {
-                                const currentLocal = localStorage.getItem('lms_students');
-                                const serverStr = JSON.stringify(studentsData);
-                                if (currentLocal !== serverStr) {
-                                    localStorage.setItem('lms_students', serverStr);
+                            const incomingStudents = cloudData.students || cloudData.data || (Array.isArray(cloudData) ? cloudData : null);
+                            if (incomingStudents && Array.isArray(incomingStudents)) {
+                                const currentLocal = this.deduplicateStudents(JSON.parse(localStorage.getItem('lms_students') || '[]'));
+                                const merged = this.mergeStudentLists(currentLocal, incomingStudents);
+                                const mergedStr = JSON.stringify(merged);
+                                const currentStr = JSON.stringify(currentLocal);
+                                if (currentStr !== mergedStr) {
+                                    localStorage.setItem('lms_students', mergedStr);
                                     if (typeof onUpdateCallback === 'function') {
-                                        onUpdateCallback('students', studentsData);
+                                        onUpdateCallback('students', merged);
                                     }
                                 }
                             }
@@ -1366,6 +1368,101 @@
         },
 
         // =========================================================================
+
+        // Smart Deduplication & Data Merging Engine
+        // Guarantees each student_id is unique and preserves fully configured records over blank/unconfigured ones
+        deduplicateStudents(list) {
+            if (!Array.isArray(list)) return [];
+            const seenMap = new Map();
+
+            list.forEach(st => {
+                if (!st || !st.student_info) return;
+                const rawId = st.student_info.student_id;
+                if (!rawId) return;
+                const idKey = String(rawId).trim().toLowerCase();
+
+                if (!seenMap.has(idKey)) {
+                    seenMap.set(idKey, st);
+                } else {
+                    // Duplicate found! Compare richness to keep the configured record
+                    const existing = seenMap.get(idKey);
+
+                    const getScore = (item) => {
+                        let score = 0;
+                        if (item.teacher_notes && !item.teacher_notes.includes('Newly registered')) score += 5;
+                        if (item.summary && item.summary.average_unit_test > 0) score += 10;
+                        if (item.summary && item.summary.attendance && item.summary.attendance !== '95%') score += 2;
+                        if (item.assessments && Array.isArray(item.assessments)) {
+                            item.assessments.forEach(a => { if (a && a.score !== null && a.score !== undefined) score += 5; });
+                        }
+                        if (item.monthly_progress) {
+                            Object.values(item.monthly_progress).forEach(weeks => {
+                                if (Array.isArray(weeks)) {
+                                    weeks.forEach(w => {
+                                        if (w) {
+                                            Object.entries(w).forEach(([k, v]) => {
+                                                if (k !== 'week' && v !== null && v !== undefined && v !== '(Still not attended)' && v !== 'Still not attended' && v !== '') {
+                                                    score += 2;
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        return score;
+                    };
+
+                    const existingScore = getScore(existing);
+                    const newScore = getScore(st);
+
+                    // Prefer configured record, or merge fields if both have data
+                    if (newScore > existingScore) {
+                        seenMap.set(idKey, st);
+                    } else if (existingScore > 0 && newScore > 0) {
+                        // Merge fields: preserve non-empty progress and assessments
+                        const merged = { ...existing, ...st };
+                        merged.student_info = { ...existing.student_info, ...st.student_info };
+                        merged.summary = { ...existing.summary, ...st.summary };
+                        merged.monthly_progress = { ...(existing.monthly_progress || {}), ...(st.monthly_progress || {}) };
+                        seenMap.set(idKey, merged);
+                    }
+                }
+            });
+
+            return Array.from(seenMap.values());
+        },
+
+        // Two-way merge that prevents cloud polling from wiping out local edits
+        mergeStudentLists(localList, incomingList) {
+            const map = new Map();
+            (incomingList || []).forEach(st => {
+                if (st && st.student_info && st.student_info.student_id) {
+                    map.set(String(st.student_info.student_id).trim().toLowerCase(), st);
+                }
+            });
+
+            (localList || []).forEach(st => {
+                if (st && st.student_info && st.student_info.student_id) {
+                    const idKey = String(st.student_info.student_id).trim().toLowerCase();
+                    if (!map.has(idKey)) {
+                        map.set(idKey, st);
+                    } else {
+                        const incoming = map.get(idKey);
+                        // If local has custom notes or scores, keep local
+                        const localHasData = (st.teacher_notes && !st.teacher_notes.includes('Newly registered')) ||
+                                             (st.summary && st.summary.average_unit_test > 0) ||
+                                             (st.assessments && st.assessments.some(a => a.score !== null));
+                        if (localHasData) {
+                            map.set(idKey, st);
+                        }
+                    }
+                }
+            });
+
+            return this.deduplicateStudents(Array.from(map.values()));
+        },
+
         // 14. PURE JSON STUDENT DATABASE ENGINE (MULTI-DEVICE ACCESS)
         // =========================================================================
         async getStudents(forceRefresh = false) {
@@ -1373,16 +1470,20 @@
             const serverBase = this.getServerBaseUrl();
             const stored = localStorage.getItem('lms_students');
             let localStudents = stored ? JSON.parse(stored) : null;
+            if (Array.isArray(localStudents)) {
+                localStudents = this.deduplicateStudents(localStudents);
+            }
 
-            // 1. Live Node Server REST API
+            // 1. Live Node Server / Vercel REST API
             if (serverBase) {
                 try {
                     const res = await fetch(`${serverBase}/api/students?t=${Date.now()}`);
                     if (res.ok) {
                         const data = await res.json();
                         if (Array.isArray(data) && data.length > 0) {
-                            localStorage.setItem('lms_students', JSON.stringify(data));
-                            return data;
+                            const deduped = this.deduplicateStudents(data);
+                            localStorage.setItem('lms_students', JSON.stringify(deduped));
+                            return deduped;
                         }
                     }
                 } catch (e) {
@@ -1390,22 +1491,24 @@
                 }
             }
 
-            // 2. Cloud JSON Endpoint (npoint.io)
+            // 2. Cloud JSON Endpoint (e.g. npoint.io)
             if (cloud.cloudJsonStudentsUrl && cloud.cloudJsonStudentsUrl.trim() !== '') {
                 try {
                     const res = await fetch(cloud.cloudJsonStudentsUrl + (cloud.cloudJsonStudentsUrl.includes('?') ? '&' : '?') + 't=' + Date.now());
                     if (res.ok) {
                         const json = await res.json();
-                        const studentsData = json.record || json.data || json;
-                        if (Array.isArray(studentsData) && studentsData.length > 0) {
-                            localStorage.setItem('lms_students', JSON.stringify(studentsData));
-                            return studentsData;
+                        const rawData = json.students || json.record || json.data || (Array.isArray(json) ? json : null);
+                        if (Array.isArray(rawData) && rawData.length > 0) {
+                            // Smart merge with local data: never wipe out locally edited progress
+                            const merged = this.mergeStudentLists(localStudents || [], rawData);
+                            localStorage.setItem('lms_students', JSON.stringify(merged));
+                            return merged;
                         }
                     }
                 } catch (e) {}
             }
 
-            // 3. Cached in LocalStorage
+            // 3. Cached in LocalStorage (Deduplicated)
             if (localStudents && Array.isArray(localStudents) && localStudents.length > 0 && !forceRefresh) {
                 return localStudents;
             }
@@ -1416,8 +1519,9 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data) && data.length > 0) {
-                        localStorage.setItem('lms_students', JSON.stringify(data));
-                        return data;
+                        const merged = this.mergeStudentLists(localStudents || [], data);
+                        localStorage.setItem('lms_students', JSON.stringify(merged));
+                        return merged;
                     }
                 }
             } catch (err) {}
@@ -1426,8 +1530,10 @@
         },
 
         async saveStudents(studentsArray) {
-            localStorage.setItem('lms_students', JSON.stringify(studentsArray));
-            await this.pushToCloud('students', studentsArray);
+            const deduped = this.deduplicateStudents(studentsArray);
+            localStorage.setItem('lms_students', JSON.stringify(deduped));
+            await this.pushToCloud('students', deduped);
+            return deduped;
         },
 
         calculateMonthlyUnitTestAverage(weeks) {
@@ -1443,32 +1549,53 @@
         },
 
         async registerStudent(newSt) {
-            const students = await this.getStudents(false);
+            let students = await this.getStudents(false);
+            students = this.deduplicateStudents(students);
+
+            const cleanId = (newSt.student_id || '').trim();
+            const cleanUsername = (newSt.username || cleanId).trim().toLowerCase();
+
+            if (!cleanId) {
+                throw new Error("Student ID is required.");
+            }
+
+            // Check if student ID already exists (Case-insensitive check)
+            const existingById = students.find(s => s.student_info && s.student_info.student_id.toLowerCase() === cleanId.toLowerCase());
+            if (existingById) {
+                throw new Error(`Student ID "${cleanId}" already exists for ${existingById.student_info.name}! Duplicate registration blocked.`);
+            }
+
+            // Check if username already exists
+            const existingByUser = students.find(s => s.student_info && (s.student_info.username || '').toLowerCase() === cleanUsername);
+            if (existingByUser) {
+                throw new Error(`Username "${cleanUsername}" is already taken! Please enter a different username.`);
+            }
+
             const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             
             const monthlyProgress = {};
             MONTHS.forEach(m => {
                 monthlyProgress[m] = [
-                    { week: "1 week", master_guide_1: "(Still not attended)", master_guide_2: "(Still not attended)", past_paper: "(Still not attended)", practical: "(Still not attended)", unit_test: null },
-                    { week: "2 week", master_guide_1: "(Still not attended)", master_guide_2: "(Still not attended)", past_paper: "(Still not attended)", practical: "(Still not attended)", unit_test: null },
-                    { week: "3 week", master_guide_1: "(Still not attended)", master_guide_2: "(Still not attended)", past_paper: "(Still not attended)", practical: "(Still not attended)", unit_test: null },
-                    { week: "4 week", master_guide_1: "(Still not attended)", master_guide_2: "(Still not attended)", past_paper: "(Still not attended)", practical: "(Still not attended)", unit_test: null }
+                    { week: "1 week" },
+                    { week: "2 week" },
+                    { week: "3 week" },
+                    { week: "4 week" }
                 ];
             });
 
             const newRecord = {
-                tab_name: newSt.name.split(' ')[0] + " " + newSt.student_id,
+                tab_name: newSt.name.trim().split(' ')[0] + " " + cleanId,
                 student_info: {
-                    name: newSt.name,
-                    student_id: newSt.student_id,
-                    username: newSt.username || newSt.student_id.toLowerCase(),
-                    password: newSt.password || 'student123',
+                    name: newSt.name.trim(),
+                    student_id: cleanId,
+                    username: cleanUsername,
+                    password: (newSt.password || 'student123').trim(),
                     grade_class: newSt.grade_class || "06 - Science",
                     homeroom_teacher: newSt.homeroom_teacher || this.getSettings().teacherName,
-                    avatar: newSt.avatar || ("https://api.dicebear.com/7.x/avataaars/svg?seed=" + encodeURIComponent(newSt.name)),
-                    qr_code_key: "QR-" + newSt.student_id,
-                    access_url: "student.html?id=" + newSt.student_id,
-                    parent_whatsapp: newSt.parent_whatsapp || "+94771614260"
+                    avatar: newSt.avatar || ("https://api.dicebear.com/7.x/avataaars/svg?seed=" + encodeURIComponent(newSt.name.trim())),
+                    qr_code_key: "QR-" + cleanId,
+                    access_url: "student.html?id=" + encodeURIComponent(cleanId),
+                    parent_whatsapp: (newSt.parent_whatsapp || "+94771614260").trim()
                 },
                 weekly_progress: monthlyProgress["January"],
                 monthly_progress: monthlyProgress,
@@ -1486,13 +1613,16 @@
             };
 
             students.push(newRecord);
+            students = this.deduplicateStudents(students);
             await this.saveStudents(students);
             return { students, newRecord };
         },
 
         async updateStudent(studentId, updatedFields) {
-            const students = await this.getStudents(false);
-            const idx = students.findIndex(s => s.student_info && s.student_info.student_id === studentId);
+            let students = await this.getStudents(false);
+            students = this.deduplicateStudents(students);
+            const cleanId = String(studentId).trim().toLowerCase();
+            const idx = students.findIndex(s => s.student_info && s.student_info.student_id.toLowerCase() === cleanId);
             if (idx !== -1) {
                 const st = students[idx];
                 if (updatedFields.name) {
@@ -1517,8 +1647,10 @@
         },
 
         async resetStudentPassword(studentId, newPassword) {
-            const students = await this.getStudents(false);
-            const idx = students.findIndex(s => s.student_info && s.student_info.student_id === studentId);
+            let students = await this.getStudents(false);
+            students = this.deduplicateStudents(students);
+            const cleanId = String(studentId).trim().toLowerCase();
+            const idx = students.findIndex(s => s.student_info && s.student_info.student_id.toLowerCase() === cleanId);
             if (idx !== -1) {
                 const pass = (newPassword || 'student123').trim();
                 students[idx].student_info.password = pass;
@@ -1528,9 +1660,23 @@
             return { success: false, error: "Student not found" };
         },
 
-        async deleteStudent(studentId) {
+        // Target-specific deletion that prevents removing multiple accounts
+        async deleteStudent(studentId, targetIndex = -1) {
             let students = await this.getStudents(false);
-            students = students.filter(s => s.student_info && s.student_info.student_id !== studentId);
+            const cleanId = String(studentId || '').trim().toLowerCase();
+
+            if (targetIndex >= 0 && targetIndex < students.length) {
+                // Delete only the exact index selected by user
+                students.splice(targetIndex, 1);
+            } else {
+                // Remove matching student ID
+                students = students.filter(s => {
+                    const sId = (s.student_info && s.student_info.student_id ? String(s.student_info.student_id) : '').trim().toLowerCase();
+                    return sId !== cleanId;
+                });
+            }
+
+            students = this.deduplicateStudents(students);
             await this.saveStudents(students);
             return students;
         },
@@ -1540,17 +1686,27 @@
             const cleanUser = (userOrId || '').trim().toLowerCase();
             const cleanPass = (pass || '').trim();
 
-            const match = students.find(s => {
+            if (!cleanUser) return null;
+
+            // Find all matching student profiles
+            const matches = students.filter(s => {
                 const info = s.student_info || {};
-                const matchUser = (info.student_id && info.student_id.toLowerCase() === cleanUser) ||
-                                  (info.username && info.username.toLowerCase() === cleanUser) ||
-                                  (info.name && info.name.toLowerCase() === cleanUser);
-                
-                const matchPass = (info.password && info.password === cleanPass) || cleanPass === 'student123' || cleanPass === 'password123';
-                return matchUser && matchPass;
+                return (info.student_id && info.student_id.toLowerCase() === cleanUser) ||
+                       (info.username && info.username.toLowerCase() === cleanUser) ||
+                       (info.name && info.name.toLowerCase() === cleanUser);
             });
 
-            return match || null;
+            if (matches.length === 0) return null;
+
+            // Verify password: check student password, or default demo password
+            const matched = matches.find(s => {
+                const info = s.student_info || {};
+                return (info.password && info.password === cleanPass) ||
+                       cleanPass === 'student123' ||
+                       cleanPass === 'password123';
+            });
+
+            return matched || null;
         },
 
         async saveStudentWeeklyTable(studentId, monthName, weeklyRows) {
