@@ -1132,16 +1132,42 @@
                     </div>
 
                     <!-- Cloud JSON & Node Server Endpoint Configuration -->
-                    <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
-                        <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Multi-Device REST & Cloud Endpoints</h4>
+                    <div class="p-5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-3.5 shadow-xl">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                            <div>
+                                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i> Multi-Device REST & Simultaneous Cloud Endpoints
+                                </h4>
+                                <p class="text-[11px] text-slate-400">Configure your cloud connection so mobile phones and laptops synchronize instantly.</p>
+                            </div>
+                            <button type="button" onclick="testLiveCloudSyncEndpoint()" class="px-3.5 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-bolt"></i> Test Connection
+                            </button>
+                        </div>
+
+                        <!-- Status Result Box for Cloud Test -->
+                        <div id="cloudTestStatusBox" class="hidden p-3 rounded-xl text-xs font-mono transition"></div>
+
+                        <!-- Multi-Device Sync Guide -->
+                        <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-1.5 text-xs text-slate-300">
+                            <div class="font-bold text-amber-300 flex items-center gap-1">
+                                <i class="fa-solid fa-mobile-screen"></i> How to Sync Simultaneously with Your Phone:
+                            </div>
+                            <ul class="list-disc list-inside space-y-1 text-[11px] text-slate-400">
+                                <li><strong class="text-slate-200">Recommended for Instant Phone Sync:</strong> Deploy the included backend on Vercel or Render with TiDB Cloud, and enter the URL in <code class="text-cyan-300">Node.js / Vercel Server Base URL</code> below. Any student created on PC will instantly appear on your phone.</li>
+                                <li><strong class="text-slate-200">Running purely on GitHub Pages:</strong> Click the <code class="text-emerald-300 font-bold">Export students.json</code> button in the student roster, download the file, and commit it to <code class="text-emerald-300">assets/data/students.json</code> in your GitHub repository. GitHub Pages will then serve the updated data to your phone.</li>
+                                <li><strong class="text-rose-400">Important Note on npoint.io:</strong> <code class="text-rose-300">api.npoint.io</code> is a read-only endpoint (GET only) and rejects client-side writes over HTTP.</li>
+                            </ul>
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-[11px] text-slate-400 mb-1">Node.js Server Base URL (Optional):</label>
-                                <input type="text" id="custNodeServerUrl" placeholder="http://localhost:3000 or http://192.168.1.10:3000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
+                                <label class="block text-[11px] text-slate-300 font-semibold mb-1">Node.js / Vercel Server Base URL (Recommended for Phone Sync):</label>
+                                <input type="text" id="custNodeServerUrl" placeholder="https://your-lms-api.vercel.app or http://localhost:3000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
                             </div>
                             <div>
-                                <label class="block text-[11px] text-slate-400 mb-1">Cloud JSON Endpoint URL (e.g. npoint.io):</label>
-                                <input type="url" id="custCloudJsonUrl" placeholder="https://api.npoint.io/..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
+                                <label class="block text-[11px] text-slate-300 font-semibold mb-1">Cloud JSON Endpoint URL (Optional):</label>
+                                <input type="url" id="custCloudJsonUrl" placeholder="https://..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
                             </div>
                         </div>
                     </div>
@@ -2145,6 +2171,48 @@
                     }
                 }
             });
+        }
+
+
+        // Live Cloud Connection Tester
+        async function testLiveCloudSyncEndpoint() {
+            const nodeUrl = document.getElementById('custNodeServerUrl').value.trim();
+            const cloudUrl = document.getElementById('custCloudJsonUrl').value.trim();
+            const box = document.getElementById('cloudTestStatusBox');
+            if (!box) return;
+
+            box.className = 'p-3 rounded-xl text-xs font-mono bg-slate-900 border border-slate-700 text-slate-200 block space-y-1';
+            box.innerHTML = '<div class="flex items-center gap-2"><i class="fa-solid fa-spinner animate-spin text-cyan-400"></i> Testing live connection...</div>';
+
+            if (nodeUrl) {
+                try {
+                    const cleanNode = nodeUrl.replace(/\/+$/, '');
+                    const res = await fetch(`${cleanNode}/api/health?t=${Date.now()}`);
+                    if (res.ok) {
+                        const h = await res.json();
+                        box.className = 'p-3 rounded-xl text-xs font-mono bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 space-y-1 block';
+                        box.innerHTML = `<div class="font-bold"><i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> Node Server & TiDB Database Connected!</div><div class="text-[11px] text-slate-300">Database: ${h.database || 'Active'} • Status: ${h.status || 'OK'}. Phone and PC will sync simultaneously.</div>`;
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            if (cloudUrl) {
+                const res = await window.LMSCore.testCloudEndpoint(cloudUrl);
+                if (res.success) {
+                    box.className = 'p-3 rounded-xl text-xs font-mono bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 block';
+                    box.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> ${res.message}`;
+                } else if (res.isReadOnly) {
+                    box.className = 'p-3 rounded-xl text-xs font-mono bg-amber-500/15 border border-amber-500/40 text-amber-300 space-y-1 block';
+                    box.innerHTML = `<div class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1 text-amber-400"></i> Endpoint is READ-ONLY (HTTP ${res.status})</div><div class="text-[11px] text-slate-300">${res.message}</div>`;
+                } else {
+                    box.className = 'p-3 rounded-xl text-xs font-mono bg-red-500/15 border border-red-500/40 text-rose-300 block';
+                    box.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1 text-rose-400"></i> ${res.message}`;
+                }
+            } else {
+                box.className = 'p-3 rounded-xl text-xs font-mono bg-amber-500/15 border border-amber-500/40 text-amber-300 block';
+                box.innerHTML = '<i class="fa-solid fa-info-circle mr-1"></i> Please enter a Node.js Server Base URL or Cloud JSON URL to test.';
+            }
         }
 
         // Live Real-Time Validation: Student Username & Name Duplication

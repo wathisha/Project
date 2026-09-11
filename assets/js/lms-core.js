@@ -1040,11 +1040,24 @@
                         }
                     } catch (fetchErr) {}
 
-                    await fetch(cloud.cloudJsonStudentsUrl, {
+                    let cloudRes = await fetch(cloud.cloudJsonStudentsUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(bodyToSend)
                     });
+
+                    // If POST returns 405 Method Not Allowed, fallback to PUT (supported by JSONBin, ExtendsClass, etc.)
+                    if (!cloudRes.ok && (cloudRes.status === 405 || cloudRes.status === 403)) {
+                        cloudRes = await fetch(cloud.cloudJsonStudentsUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(bodyToSend)
+                        });
+                    }
+
+                    if (!cloudRes.ok) {
+                        console.warn(`[Cloud Sync] Remote cloud endpoint returned HTTP ${cloudRes.status}. If using npoint.io, note that npoint.io is read-only via API.`);
+                    }
                 } catch (e) {
                     console.error("Cloud JSON endpoint sync error:", e);
                 }
@@ -1052,6 +1065,54 @@
         },
 
         // =========================================================================
+
+        // Test Cloud Endpoint connectivity and write capabilities
+        async testCloudEndpoint(customUrl = null) {
+            const cloud = this.getCloudConfig();
+            const targetUrl = customUrl || cloud.cloudJsonStudentsUrl;
+            if (!targetUrl || targetUrl.trim() === '') {
+                return { success: false, message: "No Cloud JSON URL provided." };
+            }
+
+            try {
+                // 1. Test Read
+                const testRead = await fetch(targetUrl + (targetUrl.includes('?') ? '&' : '?') + 't=' + Date.now());
+                if (!testRead.ok) {
+                    return { success: false, status: testRead.status, message: `Read test failed: Server returned HTTP ${testRead.status} (${testRead.statusText})` };
+                }
+
+                const existingData = await testRead.json();
+
+                // 2. Test Write (POST then PUT)
+                let testWrite = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(existingData)
+                });
+
+                if (!testWrite.ok && (testWrite.status === 405 || testWrite.status === 403)) {
+                    testWrite = await fetch(targetUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(existingData)
+                    });
+                }
+
+                if (testWrite.ok) {
+                    return { success: true, message: "Two-way Read & Write verified! PC and Phone will update simultaneously." };
+                } else {
+                    return {
+                        success: false,
+                        status: testWrite.status,
+                        isReadOnly: testWrite.status === 405 || testWrite.status === 403,
+                        message: `Endpoint is READ-ONLY (HTTP ${testWrite.status}). npoint.io and similar services reject remote writes over API. To sync with your phone, deploy backend on Vercel or use 'Export students.json'.`
+                    };
+                }
+            } catch (err) {
+                return { success: false, message: "Network / CORS Error: " + err.message };
+            }
+        },
+
         // 8. SETTINGS & BRANDING
         // =========================================================================
         getSettings() {
