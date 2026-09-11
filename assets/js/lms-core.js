@@ -517,8 +517,12 @@
         async addUser(userObj) {
             const users = await this.getUsers(false);
             const cleanUser = userObj.username.trim().toLowerCase();
+            const cleanName = (userObj.name || '').trim().toLowerCase();
             if (users.some(u => (u.username || '').toLowerCase() === cleanUser)) {
-                throw new Error(`Username '${cleanUser}' already exists.`);
+                throw new Error(`Username '${cleanUser}' already exists! Usernames must be unique.`);
+            }
+            if (users.some(u => (u.name || '').trim().toLowerCase() === cleanName)) {
+                throw new Error(`A user with the name '${userObj.name.trim()}' already exists in the system.`);
             }
 
             const newUser = {
@@ -1536,15 +1540,33 @@
             return deduped;
         },
 
-        calculateMonthlyUnitTestAverage(weeks) {
+        calculateMonthlyUnitTestAverage(weeks, targetColKey = null) {
             if (!weeks || !Array.isArray(weeks) || weeks.length === 0) return 0;
             let sum = 0, count = 0;
+            const cols = this.getWeeklyColumns ? this.getWeeklyColumns() : [];
+            const numCols = cols.filter(c => c.type === 'number');
+
             weeks.forEach(w => {
-                if (w && typeof w.unit_test === 'number' && !isNaN(w.unit_test) && w.unit_test !== null) {
-                    sum += w.unit_test;
-                    count++;
+                if (!w) return;
+                let val = null;
+                if (targetColKey && w[targetColKey] !== undefined) {
+                    val = w[targetColKey];
+                } else if (w.unit_test !== undefined && w.unit_test !== null) {
+                    val = w.unit_test;
+                } else if (numCols.length > 0) {
+                    // Default to the first numeric column added by teacher
+                    val = w[numCols[0].key];
+                }
+
+                if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
+                    const n = parseFloat(val);
+                    if (!isNaN(n)) {
+                        sum += n;
+                        count++;
+                    }
                 }
             });
+            // Average of the 4 weekly slots (or slots with entered scores)
             return count === 0 ? 0 : Math.round((sum / count) * 10) / 10;
         },
 
@@ -1554,21 +1576,34 @@
 
             const cleanId = (newSt.student_id || '').trim();
             const cleanUsername = (newSt.username || cleanId).trim().toLowerCase();
+            const cleanName = (newSt.name || '').trim();
 
             if (!cleanId) {
                 throw new Error("Student ID is required.");
             }
-
-            // Check if student ID already exists (Case-insensitive check)
-            const existingById = students.find(s => s.student_info && s.student_info.student_id.toLowerCase() === cleanId.toLowerCase());
-            if (existingById) {
-                throw new Error(`Student ID "${cleanId}" already exists for ${existingById.student_info.name}! Duplicate registration blocked.`);
+            if (!cleanName) {
+                throw new Error("Student Full Name is required.");
+            }
+            if (!cleanUsername) {
+                throw new Error("Student Username is required.");
             }
 
-            // Check if username already exists
+            // 1. Validation to fire if student username already exists (cannot multiply!)
             const existingByUser = students.find(s => s.student_info && (s.student_info.username || '').toLowerCase() === cleanUsername);
             if (existingByUser) {
-                throw new Error(`Username "${cleanUsername}" is already taken! Please enter a different username.`);
+                throw new Error(`Validation Error: Student username "${cleanUsername}" is already in use by ${existingByUser.student_info.name}! Student usernames must be unique.`);
+            }
+
+            // 2. Validation to fire if student with same name already exists!
+            const existingByName = students.find(s => s.student_info && (s.student_info.name || '').trim().toLowerCase() === cleanName.toLowerCase());
+            if (existingByName) {
+                throw new Error(`Validation Error: A student with the name "${cleanName}" already exists (Student ID: ${existingByName.student_info.student_id})! If this is another student, please add an initial or middle name.`);
+            }
+
+            // 3. Check if student ID already exists
+            const existingById = students.find(s => s.student_info && s.student_info.student_id.toLowerCase() === cleanId.toLowerCase());
+            if (existingById) {
+                throw new Error(`Validation Error: Student ID "${cleanId}" is already registered for ${existingById.student_info.name}! Duplicate registration blocked.`);
             }
 
             const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -1781,6 +1816,61 @@
             const totalEntries = rawValues.length;
 
             if (isNumeric) {
+                // Calculate average of the 4 slots for this month
+                let slotSum = 0;
+                let evaluatedSlotsCount = 0;
+                const slotLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                const slotScores = [];
+                const slotColors = ['#0ea5e9', '#10b981', '#f59e0b', '#ec4899'];
+
+                if (monthName && monthName !== 'all' && student && student.monthly_progress && student.monthly_progress[monthName]) {
+                    const mWeeks = student.monthly_progress[monthName];
+                    for (let w = 0; w < 4; w++) {
+                        const weekRow = (Array.isArray(mWeeks) && mWeeks[w]) ? mWeeks[w] : {};
+                        const val = weekRow[columnKey];
+                        const isNum = val !== null && val !== undefined && val !== '' && !isNaN(val);
+                        const score = isNum ? parseFloat(val) : null;
+                        slotScores.push(score !== null ? score : 0);
+                        if (isNum) {
+                            slotSum += score;
+                            evaluatedSlotsCount++;
+                        }
+                    }
+                } else {
+                    rawValues.forEach((val, i) => {
+                        const isNum = val !== null && val !== undefined && val !== '' && !isNaN(val);
+                        const score = isNum ? parseFloat(val) : null;
+                        if (isNum) {
+                            slotSum += score;
+                            evaluatedSlotsCount++;
+                        }
+                    });
+                }
+
+                const averageOf4Slots = evaluatedSlotsCount > 0 ? Math.round((slotSum / evaluatedSlotsCount) * 10) / 10 : 0;
+
+                // For monthwise view of numeric column: Pie chart displays the 4 slots with their individual scores
+                if (monthName && monthName !== 'all') {
+                    const hasAnyScore = slotScores.some(s => s > 0);
+                    return {
+                        columnKey: col.key,
+                        columnLabel: col.label,
+                        columnType: col.type,
+                        isNumeric: true,
+                        isMonthwise: true,
+                        monthName: monthName,
+                        averageOf4Slots: averageOf4Slots,
+                        evaluatedSlotsCount: evaluatedSlotsCount,
+                        slotScores: slotScores,
+                        labels: slotLabels,
+                        data: hasAnyScore ? slotScores : [1, 1, 1, 1], // Non-zero fallback so empty chart renders gracefully
+                        colors: hasAnyScore ? slotColors : ['#334155', '#334155', '#334155', '#334155'],
+                        totalEvaluated: evaluatedSlotsCount,
+                        totalEntries: 4
+                    };
+                }
+
+                // If viewing all months, render grade bands distribution
                 const bands = {
                     'A: 75 - 100%': 0,
                     'B: 65 - 74%': 0,
@@ -1826,6 +1916,9 @@
                     columnKey: col.key,
                     columnLabel: col.label,
                     columnType: col.type,
+                    isNumeric: true,
+                    isMonthwise: false,
+                    averageOf4Slots: averageOf4Slots,
                     labels,
                     data,
                     colors,
