@@ -41,7 +41,27 @@
             </div>
 
             <!-- Header Actions -->
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Digital Clock Display in Right Corner -->
+                <div id="stDigitalClock" class="bg-slate-900/90 border border-cyan-500/50 px-2.5 sm:px-3.5 py-1.5 rounded-2xl shadow-md flex items-center gap-2 font-mono">
+                    <div class="relative flex items-center justify-center">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping absolute opacity-75"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    </div>
+                    <div class="flex items-baseline gap-0.5 sm:gap-1">
+                        <span id="digitalClockHours" class="text-slate-100 font-extrabold text-xs sm:text-sm tracking-wider">12</span>
+                        <span class="text-cyan-400 font-bold text-xs animate-pulse">:</span>
+                        <span id="digitalClockMinutes" class="text-slate-100 font-extrabold text-xs sm:text-sm tracking-wider">00</span>
+                        <span class="text-cyan-400 font-bold text-xs animate-pulse">:</span>
+                        <span id="digitalClockSeconds" class="text-amber-300 font-extrabold text-xs sm:text-sm tracking-wider">00</span>
+                        <span id="digitalClockAmPm" class="text-[9px] sm:text-[10px] text-cyan-300 font-extrabold ml-0.5 uppercase">AM</span>
+                    </div>
+                    <div class="hidden lg:flex flex-col border-l border-slate-800 pl-2 text-[9px] text-slate-400 leading-tight">
+                        <span id="digitalClockDay" class="font-bold text-slate-200">Today</span>
+                        <span id="digitalClockDate" class="text-slate-400 font-mono">Live</span>
+                    </div>
+                </div>
+
                 <button type="button" onclick="window.LMSCore.toggleTheme()" class="theme-toggle-btn shadow-sm" title="Toggle Light/Dark Theme">
                     <i class="fa-solid fa-moon text-indigo-600 mr-1.5"></i>
                     <span>Dark Mode</span>
@@ -125,10 +145,39 @@
                 <button onclick="switchStTab('files')" id="st-tab-btn-files" class="pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
                     <i class="fa-solid fa-folder-open"></i> Shared Study Files
                 </button>
+                <button onclick="switchStTab('periodic')" id="st-tab-btn-periodic" class="pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-atom text-cyan-400"></i> Interactive Periodic Table
+                </button>
+                <button onclick="switchStTab('calc')" id="st-tab-btn-calc" class="pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-calculator text-emerald-400"></i> Scientific Calculator
+                </button>
             </nav>
 
             <!-- TAB 1: DASHBOARD & ANALYTICS -->
             <div id="st-tab-dash" class="space-y-8">
+
+                <!-- Student Academic Toolkit Ribbon -->
+                <div class="glass-panel p-4 flex flex-wrap items-center justify-between gap-3 border-cyan-500/30">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-sm">
+                            <i class="fa-solid fa-toolbox"></i>
+                        </span>
+                        <div>
+                            <h4 class="text-xs font-bold font-cinzel text-slate-100">Science Academic Toolkit</h4>
+                            <p class="text-[11px] text-slate-400">Quick-access scientific utilities designed for O/L Science students.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="switchStTab('periodic')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-atom text-cyan-400"></i>
+                            <span>Periodic Table of Elements</span>
+                        </button>
+                        <button onclick="toggleFloatingCalc()" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-calculator text-emerald-400"></i>
+                            <span>Quick Calculator</span>
+                        </button>
+                    </div>
+                </div>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
@@ -260,11 +309,21 @@
                         <!-- Charts Row (Default 0 for unrecorded months & Blank-Default Term Marks) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="glass-panel p-5 space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <h5 class="text-sm font-bold text-slate-200 font-cinzel"><i class="fa-solid fa-chart-line text-amber-400 mr-2"></i>12-Month Unit Test Trend</h5>
-                                    <span class="text-[10px] text-slate-400 font-mono">Default 0 Baseline</span>
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                    <div>
+                                        <h5 class="text-sm font-bold text-slate-200 font-cinzel flex items-center gap-1.5">
+                                            <i class="fa-solid fa-chart-column text-amber-400"></i> 12-Month Unit Test Trend Bar Chart
+                                        </h5>
+                                        <p class="text-[10px] text-slate-400 font-mono">Monthly Average of the 4 Weekly Slots</p>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] text-slate-400 font-mono">Column:</span>
+                                        <select id="stTrendColSelect" onchange="renderCharts()" class="bg-slate-900 border border-slate-700 text-amber-300 text-xs rounded-lg px-2 py-0.5 font-mono focus:outline-none max-w-[140px] truncate">
+                                            <!-- Dynamically filled with numeric columns -->
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="h-56 relative">
+                                <div class="h-56 relative w-full flex items-center justify-center">
                                     <canvas id="stAnnualTrendChart"></canvas>
                                 </div>
                             </div>
@@ -365,10 +424,215 @@
                     </div>
                 </div>
             </div>
+            <!-- TAB 5: INTERACTIVE PERIODIC TABLE OF ELEMENTS -->
+            <div id="st-tab-periodic" class="hidden space-y-6">
+                <div class="glass-panel p-6 space-y-6 border-cyan-500/40">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-700">
+                        <div>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-atom text-cyan-400"></i> Interactive Periodic Table of Elements
+                            </h3>
+                            <p class="text-xs text-slate-400">Detailed chemical element data, electron configurations, and practical syllabus facts for Grade 6-11 Science.</p>
+                        </div>
+                        <div class="relative w-full md:w-72">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="periodicSearchInput" placeholder="Search element name, symbol, or #..." oninput="window.PeriodicTable.setSearch(this.value, 'stPeriodicGrid', 'stElementInspector')" class="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyan-400 font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Category Filter Pills -->
+                    <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                        <button onclick="filterPeriodicCat('all')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-cyan-500 text-slate-950 font-bold shadow-sm" data-cat="all">All</button>
+                        <button onclick="filterPeriodicCat('alkali')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-rose-300 border border-rose-500/40 hover:bg-rose-500/20" data-cat="alkali">Alkali Metals</button>
+                        <button onclick="filterPeriodicCat('alkaline')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-amber-300 border border-amber-500/40 hover:bg-amber-500/20" data-cat="alkaline">Alkaline Earth</button>
+                        <button onclick="filterPeriodicCat('transition')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-500/20" data-cat="transition">Transition Metals</button>
+                        <button onclick="filterPeriodicCat('metalloid')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-teal-300 border border-teal-500/40 hover:bg-teal-500/20" data-cat="metalloid">Metalloids</button>
+                        <button onclick="filterPeriodicCat('nonmetal')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-sky-300 border border-sky-500/40 hover:bg-sky-500/20" data-cat="nonmetal">Reactive Non-Metals</button>
+                        <button onclick="filterPeriodicCat('halogen')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-purple-300 border border-purple-500/40 hover:bg-purple-500/20" data-cat="halogen">Halogens</button>
+                        <button onclick="filterPeriodicCat('noble')" class="periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-pink-300 border border-pink-500/40 hover:bg-pink-500/20" data-cat="noble">Noble Gases</button>
+                    </div>
+
+                    <!-- Selected Element Inspector Card -->
+                    <div id="stElementInspector">
+                        <!-- Populated by PeriodicTable JS -->
+                    </div>
+
+                    <!-- Elements Grid -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold font-cinzel text-slate-300 uppercase tracking-wider">Click any element to inspect atomic details:</h4>
+                        <div id="stPeriodicGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2.5">
+                            <!-- Populated by PeriodicTable JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: SCIENTIFIC & SCORECARD CALCULATOR -->
+            <div id="st-tab-calc" class="hidden space-y-6">
+                <div class="glass-panel p-6 space-y-6 border-emerald-500/40">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-700">
+                        <div>
+                            <h3 class="text-xl font-bold font-cinzel text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-calculator text-emerald-400"></i> Scientific & Scorecard Calculator
+                            </h3>
+                            <p class="text-xs text-slate-400">Academic arithmetic, trigonometry, powers, roots, and 4-slot weekly average calculator.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Scientific Calculator Panel -->
+                        <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl">
+                            <!-- Dual Line Display -->
+                            <div class="bg-slate-900 border border-slate-700/80 p-4 rounded-2xl text-right font-mono space-y-1">
+                                <div class="calc-expr-display text-xs text-slate-400 min-h-[1.2rem] truncate"> </div>
+                                <div class="calc-main-display text-2xl sm:text-3xl font-extrabold text-emerald-300 tracking-wider overflow-x-auto">0</div>
+                            </div>
+
+                            <!-- Scientific Keypad -->
+                            <div class="grid grid-cols-5 sm:grid-cols-6 gap-2 text-xs font-bold font-mono">
+                                <!-- Row 1: Trig & Logs -->
+                                <button onclick="window.StudentCalculator.toggleAngleMode()" class="calc-angle-toggle p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl border border-slate-700">DEG</button>
+                                <button onclick="window.StudentCalculator.pressSci('sin')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">sin</button>
+                                <button onclick="window.StudentCalculator.pressSci('cos')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">cos</button>
+                                <button onclick="window.StudentCalculator.pressSci('tan')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">tan</button>
+                                <button onclick="window.StudentCalculator.pressSci('log')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">log</button>
+                                <button onclick="window.StudentCalculator.pressSci('ln')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">ln</button>
+
+                                <!-- Row 2: Powers & Roots -->
+                                <button onclick="window.StudentCalculator.pressSci('sqrt')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-xl border border-slate-800">√x</button>
+                                <button onclick="window.StudentCalculator.pressSci('sqr')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-xl border border-slate-800">x²</button>
+                                <button onclick="window.StudentCalculator.pressSci('cube')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-xl border border-slate-800">x³</button>
+                                <button onclick="window.StudentCalculator.pressSci('inv')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-xl border border-slate-800">1/x</button>
+                                <button onclick="window.StudentCalculator.pressDigit('(')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">(</button>
+                                <button onclick="window.StudentCalculator.pressDigit(')')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">)</button>
+
+                                <!-- Row 3: Constants & Ops -->
+                                <button onclick="window.StudentCalculator.pressSci('pi')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl border border-slate-800">π</button>
+                                <button onclick="window.StudentCalculator.pressSci('e')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl border border-slate-800">e</button>
+                                <button onclick="window.StudentCalculator.pressSci('percent')" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 rounded-xl border border-slate-800">%</button>
+                                <button onclick="window.StudentCalculator.pressClear()" class="p-2.5 bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 rounded-xl border border-rose-500/40 font-extrabold">AC</button>
+                                <button onclick="window.StudentCalculator.pressBackspace()" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-rose-400 rounded-xl border border-slate-800">DEL</button>
+                                <button onclick="window.StudentCalculator.pressOp('/')" class="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-sm">÷</button>
+
+                                <!-- Numbers & Basic Ops -->
+                                <button onclick="window.StudentCalculator.pressDigit('7')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">7</button>
+                                <button onclick="window.StudentCalculator.pressDigit('8')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">8</button>
+                                <button onclick="window.StudentCalculator.pressDigit('9')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">9</button>
+                                <button onclick="window.StudentCalculator.pressOp('*')" class="p-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-sm col-span-2 sm:col-span-1">×</button>
+                                <button onclick="window.StudentCalculator.pressNegate()" class="hidden sm:block p-3 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800">±</button>
+                                <button onclick="window.StudentCalculator.pressOp('-')" class="hidden sm:block p-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-sm">-</button>
+
+                                <button onclick="window.StudentCalculator.pressDigit('4')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">4</button>
+                                <button onclick="window.StudentCalculator.pressDigit('5')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">5</button>
+                                <button onclick="window.StudentCalculator.pressDigit('6')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">6</button>
+                                <button onclick="window.StudentCalculator.pressOp('-')" class="sm:hidden p-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-sm col-span-2">-</button>
+                                <button onclick="window.StudentCalculator.pressOp('+')" class="hidden sm:block p-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl border border-amber-500/40 text-sm col-span-2">+</button>
+                                <button onclick="window.StudentCalculator.pressDigit('1')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">1</button>
+
+                                <button onclick="window.StudentCalculator.pressDigit('2')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">2</button>
+                                <button onclick="window.StudentCalculator.pressDigit('3')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">3</button>
+                                <button onclick="window.StudentCalculator.pressDigit('0')" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">0</button>
+                                <button onclick="window.StudentCalculator.pressDot()" class="p-3 bg-slate-900 hover:bg-slate-800 text-slate-100 rounded-xl border border-slate-800 text-sm">.</button>
+                                <button onclick="window.StudentCalculator.pressEquals()" class="p-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-base shadow-lg col-span-2 sm:col-span-2">=</button>
+                            </div>
+                        </div>
+
+                        <!-- 4-Slot Weekly Evaluation Average Calculator -->
+                        <div class="bg-slate-950 border border-amber-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                            <div>
+                                <h4 class="text-sm font-bold font-cinzel text-amber-300 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-chart-pie text-amber-400"></i> 4-Slot Weekly Average Tool
+                                </h4>
+                                <p class="text-[11px] text-slate-400">Calculate the average score of your 4 weekly progress slots in any month:</p>
+                            </div>
+
+                            <div class="space-y-2.5 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] uppercase font-mono mb-1">Week 1 Slot Score:</label>
+                                    <input type="number" min="0" max="100" id="slotScore1" placeholder="e.g. 75" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-sm focus:border-amber-400">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] uppercase font-mono mb-1">Week 2 Slot Score:</label>
+                                    <input type="number" min="0" max="100" id="slotScore2" placeholder="e.g. 80" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-sm focus:border-amber-400">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] uppercase font-mono mb-1">Week 3 Slot Score:</label>
+                                    <input type="number" min="0" max="100" id="slotScore3" placeholder="e.g. 85" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-sm focus:border-amber-400">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 text-[10px] uppercase font-mono mb-1">Week 4 Slot Score:</label>
+                                    <input type="number" min="0" max="100" id="slotScore4" placeholder="e.g. 90" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-sm focus:border-amber-400">
+                                </div>
+
+                                <button type="button" onclick="run4SlotAverageCalculation()" class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-extrabold py-2.5 rounded-xl uppercase tracking-wider text-xs shadow-md hover:brightness-110 transition">
+                                    Compute 4-Slot Average
+                                </button>
+                            </div>
+
+                            <!-- Average Result Output Box -->
+                            <div id="slotAvgResultBox" class="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1.5 text-xs text-center">
+                                <span class="text-slate-400 block text-[10px] uppercase font-mono">Monthly Average Result</span>
+                                <div id="slotAvgValue" class="text-2xl font-black font-mono text-amber-300">-- / 100</div>
+                                <div id="slotAvgGrade" class="text-[11px] font-semibold text-emerald-400">Enter scores above</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
         </div>
 
     </main>
+
+
+    <!-- Floating Quick Calculator Launcher Button -->
+    <button onclick="toggleFloatingCalc()" class="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black p-3.5 rounded-full shadow-2xl flex items-center gap-2 transition hover:scale-105 no-print" title="Toggle Quick Scientific Calculator">
+        <i class="fa-solid fa-calculator text-lg"></i>
+        <span class="hidden md:inline text-xs uppercase font-extrabold tracking-wider font-sans">Calculator</span>
+    </button>
+
+    <!-- Floating Calculator Modal Widget -->
+    <div id="floatingCalcModal" class="hidden fixed bottom-20 right-4 sm:right-6 z-50 max-w-sm w-[92vw] bg-slate-950/95 border-2 border-emerald-500/50 rounded-3xl p-4 shadow-2xl backdrop-blur-md no-print space-y-3">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+            <span class="text-xs font-bold font-cinzel text-emerald-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-calculator text-emerald-400"></i> Science Calculator
+            </span>
+            <button onclick="toggleFloatingCalc()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <!-- Dual Display -->
+        <div class="bg-slate-900 border border-slate-700/80 p-3 rounded-2xl text-right font-mono space-y-0.5">
+            <div class="calc-expr-display text-[10px] text-slate-400 min-h-[1rem] truncate"> </div>
+            <div class="calc-main-display text-xl font-extrabold text-emerald-300 tracking-wider">0</div>
+        </div>
+        <!-- Compact Keypad -->
+        <div class="grid grid-cols-4 gap-1.5 text-xs font-bold font-mono">
+            <button onclick="window.StudentCalculator.pressClear()" class="p-2 bg-rose-600/30 text-rose-300 rounded-xl border border-rose-500/40">AC</button>
+            <button onclick="window.StudentCalculator.pressBackspace()" class="p-2 bg-slate-900 text-rose-400 rounded-xl border border-slate-800">⌫</button>
+            <button onclick="window.StudentCalculator.pressSci('percent')" class="p-2 bg-slate-900 text-cyan-300 rounded-xl border border-slate-800">%</button>
+            <button onclick="window.StudentCalculator.pressOp('/')" class="p-2 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/40">÷</button>
+
+            <button onclick="window.StudentCalculator.pressDigit('7')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">7</button>
+            <button onclick="window.StudentCalculator.pressDigit('8')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">8</button>
+            <button onclick="window.StudentCalculator.pressDigit('9')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">9</button>
+            <button onclick="window.StudentCalculator.pressOp('*')" class="p-2.5 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/40">×</button>
+
+            <button onclick="window.StudentCalculator.pressDigit('4')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">4</button>
+            <button onclick="window.StudentCalculator.pressDigit('5')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">5</button>
+            <button onclick="window.StudentCalculator.pressDigit('6')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">6</button>
+            <button onclick="window.StudentCalculator.pressOp('-')" class="p-2.5 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/40">-</button>
+
+            <button onclick="window.StudentCalculator.pressDigit('1')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">1</button>
+            <button onclick="window.StudentCalculator.pressDigit('2')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">2</button>
+            <button onclick="window.StudentCalculator.pressDigit('3')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">3</button>
+            <button onclick="window.StudentCalculator.pressOp('+')" class="p-2.5 bg-amber-500/20 text-amber-300 rounded-xl border border-amber-500/40">+</button>
+
+            <button onclick="window.StudentCalculator.pressDigit('0')" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">0</button>
+            <button onclick="window.StudentCalculator.pressDot()" class="p-2.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800">.</button>
+            <button onclick="window.StudentCalculator.pressSci('sqrt')" class="p-2.5 bg-slate-900 text-amber-300 rounded-xl border border-slate-800">√</button>
+            <button onclick="window.StudentCalculator.pressEquals()" class="p-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black rounded-xl text-sm">=</button>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-slate-950 border-t border-slate-800 py-6 text-center text-xs text-slate-500 no-print">
@@ -377,6 +641,8 @@
 
     <!-- Core LMS Engine & Scripts -->
     <script src="assets/js/lms-core.js"></script>
+    <script src="assets/js/periodic-table.js"></script>
+    <script src="assets/js/calculator.js"></script>
     <script>
         const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -416,6 +682,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.LMSCore) {
                 window.LMSCore.applyThemeAndBranding();
+                initStudentDigitalClock();
             }
 
             const params = new URLSearchParams(window.location.search);
@@ -492,7 +759,7 @@
         }
 
         function switchStTab(tabKey) {
-            ['dash', 'notifs', 'cal', 'files'].forEach(t => {
+            ['dash', 'notifs', 'cal', 'files', 'periodic', 'calc'].forEach(t => {
                 const view = document.getElementById(`st-tab-${t}`);
                 const btn = document.getElementById(`st-tab-btn-${t}`);
                 if (view && btn) {
@@ -508,6 +775,69 @@
             if (tabKey === 'cal') {
                 renderStudentCalendarGrid();
             }
+            if (tabKey === 'periodic') {
+                window.PeriodicTable.render('stPeriodicGrid', 'stElementInspector');
+            }
+        }
+
+        function filterPeriodicCat(cat) {
+            document.querySelectorAll('.periodic-cat-btn').forEach(b => {
+                if (b.getAttribute('data-cat') === cat) {
+                    b.className = "periodic-cat-btn px-3 py-1 rounded-xl bg-cyan-500 text-slate-950 font-bold shadow-sm";
+                } else {
+                    b.className = "periodic-cat-btn px-3 py-1 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800";
+                }
+            });
+            window.PeriodicTable.setFilter(cat, 'stPeriodicGrid', 'stElementInspector');
+        }
+
+        function toggleFloatingCalc() {
+            const m = document.getElementById('floatingCalcModal');
+            if (m) m.classList.toggle('hidden');
+        }
+
+        function run4SlotAverageCalculation() {
+            const s1 = document.getElementById('slotScore1').value;
+            const s2 = document.getElementById('slotScore2').value;
+            const s3 = document.getElementById('slotScore3').value;
+            const s4 = document.getElementById('slotScore4').value;
+
+            const res = window.StudentCalculator.compute4SlotAverage(s1, s2, s3, s4);
+            document.getElementById('slotAvgValue').textContent = `${res.avg} / 100`;
+            document.getElementById('slotAvgGrade').textContent = `Total: ${res.sum} | ${res.grade} (${res.count} of 4 slots evaluated)`;
+        }
+
+        // Live Digital Clock on Top Right of Student Dashboard
+        function initStudentDigitalClock() {
+            function updateClock() {
+                const now = new Date();
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                const hoursStr = String(hours).padStart(2, '0');
+
+                const hEl = document.getElementById('digitalClockHours');
+                const mEl = document.getElementById('digitalClockMinutes');
+                const sEl = document.getElementById('digitalClockSeconds');
+                const apEl = document.getElementById('digitalClockAmPm');
+                const dEl = document.getElementById('digitalClockDay');
+                const dtEl = document.getElementById('digitalClockDate');
+
+                if (hEl) hEl.textContent = hoursStr;
+                if (mEl) mEl.textContent = minutes;
+                if (sEl) sEl.textContent = seconds;
+                if (apEl) apEl.textContent = ampm;
+
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                if (dEl) dEl.textContent = days[now.getDay()];
+                if (dtEl) dtEl.textContent = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
         }
 
         function renderStudentPage() {
@@ -793,50 +1123,73 @@
             if (termChart) termChart.destroy();
             if (stPracticalPieChart) stPracticalPieChart.destroy();
 
-            // 1. 12-Month Unit Test Line Chart (Default 0 for unrecorded months)
+            // 1. 12-Month Unit Test Trend Bar Chart (Monthly Average of the 4 Slots)
+            const cols = window.LMSCore.getWeeklyColumns();
+            const numCols = cols.filter(c => c.type === 'number');
+
+            const trendColSelect = document.getElementById('stTrendColSelect');
+            if (trendColSelect && trendColSelect.options.length === 0) {
+                if (numCols.length === 0) {
+                    trendColSelect.innerHTML = '<option value="unit_test">Unit Test (Default)</option>';
+                } else {
+                    numCols.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.key;
+                        opt.textContent = c.label;
+                        trendColSelect.appendChild(opt);
+                    });
+                }
+            }
+
+            const activeTrendCol = trendColSelect ? trendColSelect.value : (numCols.length > 0 ? numCols[0].key : null);
+
             const monthlyAverages = MONTHS.map(m => {
                 const weeks = (currentStudent.monthly_progress && currentStudent.monthly_progress[m]) ? currentStudent.monthly_progress[m] : [];
-                return window.LMSCore.calculateMonthlyUnitTestAverage(weeks); // Returns 0 if no tests done!
+                return window.LMSCore.calculateMonthlyUnitTestAverage(weeks, activeTrendCol);
+            });
+
+            const barColors = monthlyAverages.map(avg => {
+                if (avg >= 75) return '#10b981'; // A (75-100%) Emerald
+                if (avg >= 65) return '#6366f1'; // B (65-74%) Indigo
+                if (avg >= 50) return '#f59e0b'; // C (50-64%) Amber
+                if (avg >= 35) return '#06b6d4'; // S (35-49%) Cyan
+                if (avg > 0) return '#f43f5e';  // F (<35%) Rose
+                return 'rgba(71, 85, 105, 0.4)'; // Unrecorded 0
             });
 
             annualChart = new Chart(document.getElementById('stAnnualTrendChart').getContext('2d'), {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: MONTHS.map(m => m.substring(0, 3)),
                     datasets: [{
-                        label: 'Monthly Unit Test Average (Default 0)',
+                        label: 'Monthly Average of 4 Slots',
                         data: monthlyAverages,
-                        borderColor: '#fbbf24',
-                        backgroundColor: 'rgba(251, 191, 36, 0.15)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.35,
-                        pointBackgroundColor: '#e11d48',
-                        pointBorderColor: '#0c0710',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7
+                        backgroundColor: barColors,
+                        borderColor: barColors.map(c => c.startsWith('rgba') ? '#475569' : c),
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        hoverBorderColor: '#fbbf24',
+                        hoverBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#cbd5e1', font: { family: 'Rajdhani', size: 12 } } },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     const val = context.raw;
                                     const mName = MONTHS[context.dataIndex];
                                     const weeks = (currentStudent.monthly_progress && currentStudent.monthly_progress[mName]) || [];
-                                    const done = weeks.filter(w => w && typeof w.unit_test === 'number' && !isNaN(w.unit_test) && w.unit_test !== null).length;
-                                    return ` Avg: ${val} / 100 (${done} of ${weeks.length} tests completed)`;
+                                    return ` ${mName}: ${val} / 100 (Average of 4 Slots)`;
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                        x: { ticks: { color: '#cbd5e1', font: { weight: 'bold' } }, grid: { display: false } },
                         y: { min: 0, max: 100, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
                     }
                 }
@@ -941,7 +1294,11 @@
             });
 
             if (legendDiv) {
-                legendDiv.textContent = `${pData.totalEvaluated} / ${pData.totalEntries} evaluated (${selectedMonth})`;
+                if (pData.isNumeric && pData.isMonthwise) {
+                    legendDiv.innerHTML = `<span class="font-bold text-amber-300">Monthly Average: ${pData.averageOf4Slots} / 100</span> • <span class="text-slate-400">${pData.totalEvaluated} of 4 slots (${selectedMonth})</span>`;
+                } else {
+                    legendDiv.textContent = `${pData.totalEvaluated} / ${pData.totalEntries} evaluated (${selectedMonth})`;
+                }
             }
         }
 

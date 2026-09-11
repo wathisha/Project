@@ -456,6 +456,27 @@
                             <!-- Term Assessment Cards rendered by JS -->
                         </div>
                     </div>
+                    <!-- 12-Month Unit Test Trend Bar Chart (Monthly Average of 4 Slots) -->
+                    <div class="glass-panel p-6 space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-700">
+                            <div>
+                                <h4 class="text-base font-bold font-cinzel text-amber-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-column text-amber-400"></i> 12-Month Unit Test Trend Bar Chart
+                                </h4>
+                                <p class="text-xs text-slate-400">Monthly average of the 4 weekly evaluation slots across January to December.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 font-mono">Column:</span>
+                                <select id="adminTrendColSelect" onchange="renderAdminTrendChart()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-amber-300 font-mono focus:outline-none">
+                                    <!-- Populated dynamically with numeric columns -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="h-60 relative w-full flex items-center justify-center">
+                            <canvas id="adminAnnualTrendChart"></canvas>
+                        </div>
+                    </div>
+
 
                     <!-- Teacher Remarks & Homeroom Notes -->
                     <div class="glass-panel p-6 space-y-4">
@@ -1328,10 +1349,12 @@
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">Student Full Name:</label>
                         <input type="text" id="regName" required placeholder="e.g. Kasun Silva" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100">
+                        <p id="regNameFeedback" class="text-rose-400 text-[10px] font-bold mt-1 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>A student with this name already exists!</p>
                     </div>
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">Student ID:</label>
                         <input type="text" id="regId" required placeholder="e.g. STU-015" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
+                        <p id="regIdFeedback" class="text-rose-400 text-[10px] font-bold mt-1 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>This Student ID is already registered!</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1355,6 +1378,7 @@
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">Username:</label>
                         <input type="text" id="regUsername" placeholder="kasun" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono">
+                        <p id="regUsernameFeedback" class="text-rose-400 text-[10px] font-bold mt-1 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>Username already taken! Must be unique.</p>
                     </div>
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">Initial Password:</label>
@@ -1575,6 +1599,7 @@
                 renderCalendarAgenda();
                 renderNotificationsList();
                 loadCustomizationForm();
+                setupRegistrationValidation();
             }
 
             allStudents = await window.LMSCore.getStudents();
@@ -2037,6 +2062,142 @@
             });
         }
 
+
+        // =========================================================================
+        // ADMIN 12-MONTH UNIT TEST TREND BAR CHART (MONTHLY AVERAGE OF 4 SLOTS)
+        // =========================================================================
+        let adminTrendBarChart = null;
+
+        function renderAdminTrendChart() {
+            const st = allStudents[curIndex];
+            const canvas = document.getElementById('adminAnnualTrendChart');
+            if (!st || !canvas) return;
+
+            if (adminTrendBarChart) {
+                adminTrendBarChart.destroy();
+                adminTrendBarChart = null;
+            }
+
+            const cols = window.LMSCore.getWeeklyColumns();
+            const numCols = cols.filter(c => c.type === 'number');
+            const selectEl = document.getElementById('adminTrendColSelect');
+
+            if (selectEl && selectEl.options.length === 0) {
+                if (numCols.length === 0) {
+                    selectEl.innerHTML = '<option value="unit_test">Unit Test (Default)</option>';
+                } else {
+                    numCols.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.key;
+                        opt.textContent = c.label;
+                        selectEl.appendChild(opt);
+                    });
+                }
+            }
+
+            const activeColKey = selectEl ? selectEl.value : (numCols.length > 0 ? numCols[0].key : null);
+
+            const monthlyAverages = MONTHS.map(m => {
+                const weeks = (st.monthly_progress && st.monthly_progress[m]) ? st.monthly_progress[m] : [];
+                return window.LMSCore.calculateMonthlyUnitTestAverage(weeks, activeColKey);
+            });
+
+            const barColors = monthlyAverages.map(avg => {
+                if (avg >= 75) return '#10b981';
+                if (avg >= 65) return '#6366f1';
+                if (avg >= 50) return '#f59e0b';
+                if (avg >= 35) return '#06b6d4';
+                if (avg > 0) return '#f43f5e';
+                return 'rgba(71, 85, 105, 0.4)';
+            });
+
+            adminTrendBarChart = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: MONTHS.map(m => m.substring(0, 3)),
+                    datasets: [{
+                        label: 'Monthly Average (4 Slots)',
+                        data: monthlyAverages,
+                        backgroundColor: barColors,
+                        borderColor: barColors.map(c => c.startsWith('rgba') ? '#475569' : c),
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw;
+                                    const mName = MONTHS[context.dataIndex];
+                                    return ` ${mName}: ${val} / 100 (Average of 4 Slots)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#cbd5e1', font: { weight: 'bold' } }, grid: { display: false } },
+                        y: { min: 0, max: 100, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // Live Real-Time Validation: Student Username & Name Duplication
+        function setupRegistrationValidation() {
+            const regName = document.getElementById('regName');
+            const regUsername = document.getElementById('regUsername');
+            const regId = document.getElementById('regId');
+
+            const nameFb = document.getElementById('regNameFeedback');
+            const userFb = document.getElementById('regUsernameFeedback');
+            const idFb = document.getElementById('regIdFeedback');
+
+            function checkDuplicates() {
+                const nameVal = (regName.value || '').trim().toLowerCase();
+                const userVal = (regUsername.value || '').trim().toLowerCase();
+                const idVal = (regId.value || '').trim().toLowerCase();
+
+                // Name duplicate check
+                const nameDupe = allStudents.some(s => s.student_info && (s.student_info.name || '').trim().toLowerCase() === nameVal);
+                if (nameVal && nameDupe) {
+                    nameFb.classList.remove('hidden');
+                    regName.classList.add('border-rose-500');
+                } else {
+                    nameFb.classList.add('hidden');
+                    regName.classList.remove('border-rose-500');
+                }
+
+                // Username duplicate check (cannot multiply!)
+                const userDupe = allStudents.some(s => s.student_info && (s.student_info.username || '').toLowerCase() === userVal);
+                if (userVal && userDupe) {
+                    userFb.classList.remove('hidden');
+                    regUsername.classList.add('border-rose-500');
+                } else {
+                    userFb.classList.add('hidden');
+                    regUsername.classList.remove('border-rose-500');
+                }
+
+                // ID duplicate check
+                const idDupe = allStudents.some(s => s.student_info && s.student_info.student_id.toLowerCase() === idVal);
+                if (idVal && idDupe) {
+                    idFb.classList.remove('hidden');
+                    regId.classList.add('border-rose-500');
+                } else {
+                    idFb.classList.add('hidden');
+                    regId.classList.remove('border-rose-500');
+                }
+            }
+
+            if (regName) regName.addEventListener('input', checkDuplicates);
+            if (regUsername) regUsername.addEventListener('input', checkDuplicates);
+            if (regId) regId.addEventListener('input', checkDuplicates);
+        }
+
         function renderSelectedStudent(st) {
             if (!st || !st.student_info) return;
 
@@ -2071,6 +2232,9 @@
 
             // Render Practical Ratings Pie Chart
             renderAllColumnPieCharts(st);
+
+            // Render 12-Month Unit Test Trend Bar Chart (Average of 4 slots)
+            renderAdminTrendChart();
         }
 
         function renderAdminQrCode(url, stId) {
@@ -2435,21 +2599,46 @@
 
                 // Build legend breakdown
                 let legendHtml = '<div class="space-y-1">';
-                pData.labels.forEach((lbl, idx) => {
-                    const count = pData.data[idx];
-                    const total = pData.data.reduce((a, b) => a + b, 0);
-                    const pct = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
+                if (pData.isNumeric && pData.isMonthwise) {
                     legendHtml += `
-                        <div class="flex items-center justify-between text-[11px]">
-                            <span class="flex items-center gap-1.5 truncate">
-                                <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background-color: ${pData.colors[idx]}"></span>
-                                <span class="text-slate-300 truncate">${lbl}</span>
-                            </span>
-                            <span class="font-mono text-slate-400 font-semibold">${count} <span class="text-slate-500 text-[10px]">(${pct}%)</span></span>
+                        <div class="pb-1.5 mb-1.5 border-b border-slate-800 flex justify-between items-center text-xs">
+                            <span class="text-amber-300 font-bold">Monthly 4-Slot Average:</span>
+                            <span class="font-mono font-extrabold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/40">${pData.averageOf4Slots} / 100</span>
                         </div>
                     `;
-                });
+                    pData.labels.forEach((lbl, idx) => {
+                        const scoreVal = pData.slotScores ? pData.slotScores[idx] : pData.data[idx];
+                        legendHtml += `
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="flex items-center gap-1.5 truncate">
+                                    <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background-color: ${pData.colors[idx]}"></span>
+                                    <span class="text-slate-300">${lbl}:</span>
+                                </span>
+                                <span class="font-mono text-slate-200 font-bold">${scoreVal} / 100</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    pData.labels.forEach((lbl, idx) => {
+                        const count = pData.data[idx];
+                        const total = pData.data.reduce((a, b) => a + b, 0);
+                        const pct = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
+                        legendHtml += `
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="flex items-center gap-1.5 truncate">
+                                    <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background-color: ${pData.colors[idx]}"></span>
+                                    <span class="text-slate-300 truncate">${lbl}</span>
+                                </span>
+                                <span class="font-mono text-slate-400 font-semibold">${count} <span class="text-slate-500 text-[10px]">(${pct}%)</span></span>
+                            </div>
+                        `;
+                    });
+                }
                 legendHtml += '</div>';
+
+                const badgeText = (pData.isNumeric && pData.isMonthwise) 
+                    ? `Avg: ${pData.averageOf4Slots} / 100` 
+                    : `${pData.totalEvaluated} / ${pData.totalEntries} Eval`;
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
@@ -2459,8 +2648,8 @@
                             </h5>
                             <span class="text-[9px] text-slate-400 font-mono">[${pData.columnType === 'number' ? 'Marks (0-100)' : (pData.columnType === 'text' ? 'Text Status' : 'Dropdown')}]</span>
                         </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 flex-shrink-0">
-                            ${pData.totalEvaluated} / ${pData.totalEntries} Eval
+                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex-shrink-0 font-mono">
+                            ${badgeText}
                         </span>
                     </div>
 
